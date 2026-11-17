@@ -24,6 +24,11 @@ const PRIX = {
 }
 const MODELE_ECO = 'claude-haiku-5-5' // modèle utilisé une fois le budget du jour dépassé
 const prixDe = (model) => PRIX[Object.keys(PRIX).find(k => model.includes(k))] || PRIX['sonnet-5-5']
+// Économie (réglage « routine ») : Haiku, beaucoup moins cher, enchaîne les actions de routine
+// (missions, initiatives qui se passent bien). Le modèle choisi garde les discussions avec les joueurs,
+// les événements du jeu (nuit, mort, danger) et les coups durs (une action qui échoue).
+const MODELE_ROUTINE = 'claude-haiku-5-5'
+const ECHEC = /^(Erreur|Il me manque|Il me faut|Je n'arrive|Impossible|Aucun|Annulé|Interrompu|Action inconnue|Bloc inconnu|Objet inconnu)|abandon|problème|bloqué|coincé|je suis mort|tu es mort|Danger/i
 
 function systemPrompt (botName, owner) {
   return `Tu es ${botName}, un joueur dans le monde Minecraft survie de ${owner}. Tu n'es pas un assistant : tu es son pote et son coéquipier, tu joues avec lui avec de l'humour et de la bonne humeur, tu t'intéresses à lui et à ce que vous construisez ensemble.
@@ -103,11 +108,12 @@ function personnalite () {
 }
 
 class Brain {
-  constructor ({ bot, actions, owner, model, effort, memory, memoire, budget }) {
+  constructor ({ bot, actions, owner, model, effort, memory, memoire, budget, routineEco }) {
     this.bot = bot
     this.actions = actions
     this.owner = owner
     this.model = model
+    this.routineEco = routineEco !== false // Haiku pour la routine (réglage de l'appli)
     this.budget = budget || 8 // dollars par jour avant de passer au modèle économique
     this.effort = effort || 'low' // low = réponses rapides et pas chères
     this.client = new Anthropic()
@@ -266,14 +272,18 @@ class Brain {
     const snapshotBefore = start ? JSON.stringify(h[start - 1]) : null
     let toolCalls = 0
     let saidWithDire = false
+    // qui l'a fait réfléchir : un joueur ou un événement du jeu (modèle choisi), ou une relance automatique (routine)
+    let parJoueur = !this.fromMission
+    let echec = false // la dernière action a échoué : il faut réfléchir avec le bon modèle
     try {
       this._addUser(`${this.actions.etat()}\n${text}`)
       for (let step = 0; step < MAX_STEPS; step++) {
         this._checkBudget()
+        const modele = this._modelePour(parJoueur, echec)
         // Sonnet / Opus : si une requête est refusée par erreur, l'API réessaie avec un autre modèle
-        const fallback = /sonnet-5-5|opus-5/.test(this.model)
+        const fallback = /sonnet-5-5|opus-5/.test(modele)
         const res = await this.client.beta.messages.create({
-          model: this.model,
+          model: modele,
           max_tokens: 4096, // de la place pour réfléchir + répondre
           betas: fallback ? [THINKING_BETA, 'server-side-fallback-2026-07-01'] : [THINKING_BETA],
           ...(fallback ? { fallbacks: 'default' } : {}),
@@ -288,7 +298,7 @@ class Brain {
           ...(step === MAX_STEPS - 1 ? { tool_choice: { type: 'none' } } : {}),
           messages: h
         })
-        this._track(res.usage)
+        this._track(res.usage, modele, modele !== this.model)
         // on garde la réponse telle quelle (réflexion comprise), sinon l'API la refuse ensuite
         if (res.content.length) h.push({ role: 'assistant', content: res.content })
         // s'il parle avec l'outil « dire », on n'envoie pas en plus son texte (sinon le message est en double)
@@ -323,12 +333,13 @@ class Brain {
           results.push({ type: 'tool_result', tool_use_id: b.id, content: String(out ?? 'ok').slice(0, 1500) })
         }
         this._addUser(results)
+        echec = calls.some((b, i) => b.name !== 'dire' && ECHEC.test(String(results[i]?.content || '')))
         // « stop » reçu : on rend la main, le message stop est traité juste après
         if (this.stopRequested) { this.stopRequested = false; break }
         // messages arrivés pendant l'action : Claude les voit sans attendre la fin de la tâche
         if (this.queue.length) {
           const incoming = this.queue.splice(0)
-          if (incoming.some(t => !t.startsWith('[mission]'))) this.replyPending = true
+          if (incoming.some(t => !t.startsWith('[mission]'))) { this.replyPending = true; parJoueur = true }
           this._addUser(`[messages reçus pendant l'action]\n${incoming.join('\n')}`)
         }
         if (step === MAX_STEPS - 2) this._addUser('[événement] Limite d\'actions atteinte pour cette demande : fais le point en une phrase.')
@@ -380,7 +391,14 @@ class Brain {
     }
   }
 
-  _track (u) {
+  // le modèle de cet appel : celui choisi, sauf pour la routine (économie) ou une fois le budget atteint
+  _modelePour (parJoueur, echec) {
+    if (this.model === MODELE_ECO) return this.model // budget atteint, ou Haiku choisi dans l'appli
+    if (!this.routineEco || parJoueur || echec) return this.model
+    return MODELE_ROUTINE
+  }
+
+  _track (u, modele = this.model, routine = false) {
     if (!u) return
     const s = this.memory.usage
     s.input += (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0)
@@ -388,14 +406,14 @@ class Brain {
     s.cacheRead += u.cache_read_input_tokens || 0
     s.calls++
     // dépense du jour, gardée dans memoire.json (même si le bot redémarre)
-    const [pin, pout, pread, pwrite] = prixDe(this.model)
+    const [pin, pout, pread, pwrite] = prixDe(modele)
     const cost = ((u.input_tokens || 0) * pin + (u.output_tokens || 0) * pout +
       (u.cache_read_input_tokens || 0) * pread + (u.cache_creation_input_tokens || 0) * pwrite) / 1e6
     const today = new Date().toLocaleDateString('fr-FR')
     const d = this.memoire.reglage?.('depense', null)
     const total = (d && d.jour === today ? d.usd : 0) + cost
     this.memoire.setReglage?.('depense', { jour: today, usd: total })
-    console.log(`  🧠 appel #${s.calls} (${this.model.replace('claude-', '')}) — dépense du jour ${total.toFixed(3)} $ / ${this.budget} $`)
+    console.log(`  🧠 appel #${s.calls} (${modele.replace('claude-', '')}${routine ? ', routine' : ''}) — dépense du jour ${total.toFixed(3)} $ / ${this.budget} $`)
   }
 
   // budget du jour dépassé : on passe au modèle économique

@@ -22,6 +22,7 @@
         <button class="soutien" id="btn-soutien" hidden><span data-ic="coeur"></span>Soutenir MineBuddy</button>
         <div id="pied-modele">Cerveau : —</div>
         <div id="pied-depense">Aujourd'hui : 0,00 $</div>
+        <button class="lien-guide" id="btn-bug">Signaler un problème</button>
         <div class="pied-bas"><button class="lien-guide" id="btn-guide">Revoir le guide</button><span id="version"></span></div>
       </div>
     </aside>
@@ -123,6 +124,8 @@
             </select></label>
             <label>Réflexion<select name="effort"><option value="low">Rapide</option><option value="medium">Normale</option><option value="high">Poussée</option></select></label>
             <label>Budget par jour ($)<input name="budget" type="number" min="0" step="0.5"><small>Au-delà, il passe tout seul sur Haiku (beaucoup moins cher).</small></label>
+            <label class="ligne"><input type="checkbox" name="routineEco"> Économie : Haiku s'occupe des actions de routine</label>
+            <small class="sous-case">Ton modèle garde les discussions, les événements (nuit, danger) et les coups durs. Beaucoup moins cher en mission.</small>
           </div>
           <div class="cd">
             <h2>Clé API Claude</h2>
@@ -244,6 +247,28 @@
         <button type="button" class="bt lien" id="g-passer">Passer le guide</button>
         <button type="button" class="bt" id="g-retour">Retour</button>
         <button type="button" class="bt prim" id="g-suivant">Suivant</button>
+      </div>
+    </div>
+  </div>
+  <!-- SIGNALER UN PROBLÈME : le rapport est copié, puis la page GitHub s'ouvre -->
+  <div class="voile" id="rapport" hidden>
+    <div class="guide" role="dialog" aria-modal="true" aria-labelledby="rapport-titre">
+      <div class="guide-tete">
+        <span class="logo-ic" data-ic="robot"></span>
+        <div class="guide-titres">
+          <div class="guide-sur">Aide à améliorer MineBuddy</div>
+          <h2 id="rapport-titre">Signaler un problème</h2>
+        </div>
+      </div>
+      <label>Ce qui s'est passé<textarea id="r-texte" rows="4" maxlength="2000" placeholder="Ex. : le bot est resté bloqué dans une rivière après avoir coupé du bois"></textarea></label>
+      <label class="ligne"><input type="checkbox" id="r-journal" checked> Joindre le journal du bot (les 60 dernières lignes)</label>
+      <details class="manuel"><summary>Voir ce qui sera envoyé</summary><pre class="apercu" id="r-apercu"></pre></details>
+      <p class="muted r-aide">Ta clé API n'est jamais incluse. Le rapport est copié : sur GitHub, colle-le dans la description (Ctrl+V), puis clique sur « Create ». Il faut un compte GitHub (gratuit). Pas de compte ? « Copier seulement » et envoie-le où tu veux.</p>
+      <div class="erreur" id="r-err"></div>
+      <div class="guide-pied">
+        <button type="button" class="bt lien" id="r-annuler">Annuler</button>
+        <button type="button" class="bt" id="r-copier">Copier seulement</button>
+        <button type="button" class="bt prim" id="r-envoyer">Copier et ouvrir GitHub</button>
       </div>
     </div>
   </div>

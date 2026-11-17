@@ -192,4 +192,9 @@ svg { width: 18px; height: 18px; flex: none; }
 .manuel summary { cursor: pointer; margin-bottom: 8px; }
 .manuel label { max-width: 220px; }
 .guide-pied { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.guide-pied #g-passer { margin-right: auto; color: var(--muet); padding-left: 0; }
+.guide-pied #g-passer, .guide-pied #r-annuler { margin-right: auto; color: var(--muet); padding-left: 0; }
+.apercu { max-height: 170px; overflow: auto; margin: 0; padding: 8px 10px; background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon); font: 11px/1.5 Consolas, monospace; white-space: pre-wrap; word-break: break-word; color: #c4c8ce; }
+.r-aide { margin: 10px 0 0; font-size: 12px; }
+.r-ok { color: var(--accent-texte); font-size: 13px; }
+#btn-bug { display: block; margin-top: 6px; }
+.sous-case { display: block; margin: -8px 0 12px 24px; }

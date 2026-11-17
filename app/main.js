@@ -3,7 +3,7 @@
 // Elle garde les réglages dans le dossier de l'utilisateur (%APPDATA%\MineBuddy), lance le bot
 // en arrière-plan, et affiche ce qu'il fait en direct.
 
-const { app, BrowserWindow, ipcMain, safeStorage, shell, Tray, Menu, nativeImage, Notification } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, Tray, Menu, nativeImage, Notification, clipboard } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -46,6 +46,7 @@ const DEFAUT = {
   caractere: '',
   style: '',
   regles: 'Ne casse jamais mes constructions et n\'attaque jamais de joueur.',
+  routineEco: true, // Haiku (pas cher) pour les actions de routine, le modèle choisi pour parler et les coups durs
   arrierePlan: true, // fermer la fenêtre laisse le bot jouer (icône près de l'horloge)
   guideVu: false // le guide des premiers pas a été fait ou passé
 }
@@ -200,6 +201,8 @@ function adopterMonde (force) {
 // ---------- mises à jour automatiques (depuis les « Releases » GitHub du projet) ----------
 // Ta page de dons (Ko-fi, Tipeee...) : le bouton « Soutenir » apparaît dans l'appli dès que c'est rempli
 const LIEN_SOUTIEN = ''
+// La page GitHub du projet (bouton « Signaler un problème »)
+const DEPOT = 'https://github.com/Aiko74/minebuddy'
 let majEtat = null // { etat: 'telechargement' | 'prete', version, pourcent }
 let majErreur = null // dernière erreur de vérification (pour les tests)
 let autoUpdater = null
@@ -306,6 +309,7 @@ function demarrer () {
     EFFORT: c.effort,
     BUDGET_USD: String(c.budget),
     RESPOND_ALL: c.repondreATous ? 'true' : 'false',
+    MB_ROUTINE: c.routineEco === false ? 'modele' : 'haiku',
     MB_CARACTERE: c.caractere || '',
     MB_STYLE: c.style || '',
     MB_REGLES: c.regles || ''
@@ -474,6 +478,12 @@ function creerFenetre () {
         arreter()
         await new Promise(r => setTimeout(r, 2500))
       }
+      // la fenêtre « Signaler un problème », remplie comme le ferait un joueur
+      await js('ouvrirRapport(); document.querySelector(\'#r-texte\').value = \'Le bot est resté bloqué dans une rivière après avoir coupé du bois.\'; document.querySelector(\'#rapport .manuel\').open = true; majApercu()')
+      await new Promise(r => setTimeout(r, 1200))
+      await photo('rapport')
+      fs.writeFileSync(path.join(dossier, 'rapport.txt'), await js('texteRapport()'))
+      await js('fermerRapport()')
       // MB_TEST_FOND=1 : bot lancé, on ferme la fenêtre → elle doit se cacher et le bot continuer
       if (process.env.MB_TEST_FOND) {
         demarrer()
@@ -549,7 +559,13 @@ ipcMain.handle('memoire:lire', () => {
 ipcMain.handle('memoire:op', (e, op, args) => operationMemoire(op, args || {}))
 ipcMain.handle('lien:ouvrir', (e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url) })
 ipcMain.handle('dossier:ouvrir', () => shell.openPath(DATA()))
-ipcMain.handle('appli:infos', () => ({ version: app.getVersion(), soutien: LIEN_SOUTIEN, maj: majEtat }))
+ipcMain.handle('appli:infos', () => ({ version: app.getVersion(), soutien: LIEN_SOUTIEN, maj: majEtat, systeme: `Windows ${os.release()}` }))
+// « Signaler un problème » : le rapport est copié (jamais mis dans l'adresse), puis la page GitHub s'ouvre
+ipcMain.handle('rapport:envoyer', (e, texte, ouvrir) => {
+  clipboard.writeText(String(texte || '').replace(/sk-ant-[A-Za-z0-9_-]+/g, 'sk-ant-(masquée)'))
+  if (ouvrir) shell.openExternal(`${DEPOT}/issues/new`)
+  return { ok: true }
+})
 ipcMain.handle('maj:installer', () => installerMaj())
 ipcMain.handle('carte:visible', (e, v) => {
   carteVisible = !!v

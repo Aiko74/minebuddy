@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('mb', {
   ouvrirLien: (url) => ipcRenderer.invoke('lien:ouvrir', url),
   ouvrirDossier: () => ipcRenderer.invoke('dossier:ouvrir'),
   infos: () => ipcRenderer.invoke('appli:infos'),
+  envoyerRapport: (texte, ouvrir) => ipcRenderer.invoke('rapport:envoyer', texte, ouvrir),
   installerMaj: () => ipcRenderer.invoke('maj:installer'),
   carteVisible: (v) => ipcRenderer.invoke('carte:visible', v),
   surCarte: (cb) => ipcRenderer.on('bot:carte', (e, c) => cb(c)),

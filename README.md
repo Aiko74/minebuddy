@@ -7,7 +7,8 @@
 ## Ce qu'il sait faire
 
 - **Jouer avec toi** : te suivre, te rejoindre, te donner des objets, te parler comme un pote (messages courts, en français).
-- **Survivre** : manger, chasser et faire cuire la viande, mettre son armure, se défendre contre les monstres, dormir (il a même un lit portable), s'abriter la nuit, remonter respirer sous l'eau.
+- **Survivre** : manger, chasser et faire cuire la viande, mettre son armure, se défendre contre les monstres, dormir (il a même un lit portable), s'abriter la nuit, remonter respirer sous l'eau, nager jusqu'à la berge s'il est coincé dans l'eau.
+- **Dormir avec toi** : quand tu te couches, il va dormir aussi, pour que la nuit passe.
 - **Récolter et fabriquer** : bois, pierre, minerais, n'importe quel objet avec ou sans établi, four.
 - **Construire** : une cabane, un chalet complet, aplanir un terrain, un enclos.
 - **Une ferme** : attirer des vaches avec du blé, les enfermer, les faire se reproduire.
@@ -38,7 +39,7 @@ Le cerveau du bot, c'est Claude. Il te faut une clé (payante à l'usage) :
 
 La clé reste chiffrée sur ton PC. Elle n'est jamais affichée ni envoyée ailleurs que chez Anthropic.
 
-**Combien ça coûte ?** Ça dépend de combien il joue. Pendant nos tests avec Sonnet, une nuit de jeu autonome jusqu'au dragon a coûté environ 2,30 $ ; en le laissant tourner sans arrêt toute la journée, il a atteint 8 $. Tu fixes un **budget par jour** (3 $ par défaut) : une fois atteint, il passe tout seul sur Haiku, beaucoup moins cher.
+**Combien ça coûte ?** Ça dépend de combien il joue. Pendant nos tests avec Sonnet, une nuit de jeu autonome jusqu'au dragon a coûté environ 2,30 $ ; en le laissant tourner sans arrêt toute la journée, il a atteint 8 $. Tu fixes un **budget par jour** (3 $ par défaut) : une fois atteint, il passe tout seul sur Haiku, beaucoup moins cher. Et le réglage **Économie** (activé par défaut) confie les actions de routine à Haiku ; ton modèle garde les discussions avec toi, les événements (nuit, danger) et les coups durs.
 
 ## Jouer avec lui
 
@@ -71,8 +72,9 @@ Au premier lancement, Windows peut demander d'**autoriser MineBuddy sur le rése
 ## À savoir
 
 - Commence dans un **monde de test** : c'est une IA, elle peut faire des bêtises.
-- Ses points faibles : **l'eau** (rivières, océans, grottes inondées) et **les nuits sans armure**. Il peut mourir comme un vrai joueur.
+- L'eau et les nuits sans armure restent ses points faibles, même s'il s'en sort mieux : il nage jusqu'à la berge quand il est coincé, et il s'enterre tout seul à la tombée de la nuit s'il n'a presque pas d'armure. Il peut mourir comme un vrai joueur.
 - Il n'est pas parfait sur les longs trajets en terrain très accidenté (jungle, falaises).
+- Un problème ? Clique sur **Signaler un problème** en bas à gauche de l'appli : le rapport (sans ta clé) est copié, il ne reste qu'à le coller sur GitHub.
 
 ## Pour les développeurs
 

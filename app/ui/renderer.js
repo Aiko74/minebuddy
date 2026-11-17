@@ -600,6 +600,55 @@ mb.surMaj(afficherMaj)
 let lienSoutien = ''
 $('#btn-soutien').addEventListener('click', () => { if (lienSoutien) mb.ouvrirLien(lienSoutien) })
 
+// ---------- signaler un problème ----------
+// Le rapport (description + infos + fin du journal) est montré avant l'envoi, copié, puis la page GitHub s'ouvre.
+// Rien n'est mis dans l'adresse de la page, et la clé API n'y est jamais.
+let infosAppli = {}
+async function texteRapport () {
+  const e = etatBot
+  const modele = e.modele || config?.modele
+  const l = [
+    '**Ce qui s\'est passé :**', $('#r-texte').value.trim() || '(à décrire)', '',
+    '**Infos**',
+    `- MineBuddy ${infosAppli.version || '?'} · ${infosAppli.systeme || 'Windows'}`,
+    `- Cerveau : ${NOMS_MODELES[modele] || modele || '?'} · économie routine : ${config?.routineEco === false ? 'non' : 'oui'} · réflexion : ${config?.effort || '?'}`,
+    `- Bot : ${e.connecte ? 'connecté' : e.lance ? 'en connexion' : 'arrêté'}${e.versionMc ? ` · Minecraft ${e.versionMc}` : ''}${e.connecte && e.dimension ? ` · ${NOMS_DIMS[dimCourte(e.dimension)] || e.dimension}` : ''}`
+  ]
+  if ($('#r-journal').checked) {
+    const logs = (await mb.logs()).slice(-60).map(x => `${x.t} ${x.texte}`.slice(0, 300))
+    l.push('', '**Journal du bot (60 dernières lignes)**', '```', ...(logs.length ? logs : ['(vide)']), '```')
+  }
+  return l.join('\n').replace(/sk-ant-[A-Za-z0-9_-]+/g, 'sk-ant-(masquée)')
+}
+const majApercu = async () => { $('#r-apercu').textContent = await texteRapport() }
+function messageRapport (texte, ok) {
+  const el = $('#r-err')
+  el.className = ok ? 'r-ok' : 'erreur'
+  el.textContent = texte
+}
+function ouvrirRapport () {
+  messageRapport('', false)
+  $('#r-annuler').textContent = 'Annuler'
+  $('#rapport').hidden = false
+  majApercu()
+  setTimeout(() => $('#r-texte').focus(), 50)
+}
+const fermerRapport = () => { $('#rapport').hidden = true }
+async function envoyerRapport (ouvrir) {
+  if (!$('#r-texte').value.trim()) return messageRapport('Décris le problème en une phrase ou deux.', false)
+  await mb.envoyerRapport(await texteRapport(), ouvrir)
+  messageRapport(ouvrir
+    ? 'Rapport copié ! Sur la page GitHub qui vient de s\'ouvrir, colle-le dans la description (Ctrl+V). Merci !'
+    : 'Rapport copié ! Colle-le où tu veux (Ctrl+V). Merci !', true)
+  $('#r-annuler').textContent = 'Fermer'
+}
+$('#btn-bug').addEventListener('click', ouvrirRapport)
+$('#r-annuler').addEventListener('click', fermerRapport)
+$('#r-copier').addEventListener('click', () => envoyerRapport(false))
+$('#r-envoyer').addEventListener('click', () => envoyerRapport(true))
+$('#r-texte').addEventListener('input', () => { messageRapport('', false); majApercu() })
+$('#r-journal').addEventListener('change', majApercu)
+
 // ---------- guide des premiers pas ----------
 let etapeGuide = 1
 const TITRES_GUIDE = ['Bienvenue dans MineBuddy', 'Presque prêt', 'Dernière étape']
@@ -695,11 +744,16 @@ for (const id of ['#g-cle', '#g-pseudo', '#g-nom', '#g-port']) {
   $(id).addEventListener('keydown', (k) => { if (k.key === 'Enter') guideSuivant() })
   $(id).addEventListener('input', () => { $('#g-err').textContent = '' })
 }
-document.addEventListener('keydown', (k) => { if (k.key === 'Escape' && !$('#guide').hidden) fermerGuide() })
+document.addEventListener('keydown', (k) => {
+  if (k.key !== 'Escape') return
+  if (!$('#rapport').hidden) fermerRapport()
+  else if (!$('#guide').hidden) fermerGuide()
+})
 
 // ---------- au démarrage ----------
 ;(async () => {
   const infos = await mb.infos()
+  infosAppli = infos
   $('#version').textContent = `v${infos.version}`
   afficherMaj(infos.maj)
   lienSoutien = infos.soutien || ''

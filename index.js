@@ -152,6 +152,7 @@ if (DANS_APPLI) {
           vie: etat.connecte ? Math.round(b.health ?? 0) : null,
           faim: etat.connecte ? Math.round(b.food ?? 0) : null,
           modele: etat.brain?.model || env.MODEL || 'claude-haiku-5-5',
+          versionMc: b?.version || null,
           depense: d && d.jour === aujourdhui ? d.usd : 0,
           budget: Number(env.BUDGET_USD || 8),
           mission: etat.actions?.mission?.()?.objectif || null,
@@ -199,7 +200,7 @@ function start () {
 
   bot.once('spawn', () => {
     actions = createActions(bot, memoire)
-    brain = new Brain({ bot, actions, owner: OWNER, model: env.MODEL || 'claude-haiku-5-5', effort: env.EFFORT || 'low', memory, memoire, budget: Number(env.BUDGET_USD || 8) })
+    brain = new Brain({ bot, actions, owner: OWNER, model: env.MODEL || 'claude-haiku-5-5', effort: env.EFFORT || 'low', memory, memoire, budget: Number(env.BUDGET_USD || 8), routineEco: env.MB_ROUTINE !== 'modele' })
     actions.onEvent((text) => brain.push(text))
     stopRoutines = actions.startRoutines()
     etat.actions = actions

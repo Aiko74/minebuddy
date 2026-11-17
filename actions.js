@@ -136,6 +136,7 @@ function createActions (bot, memoire) {
 
   async function goto (goal, ms = 60000) {
     let decoinces = 0
+    let sortiDeLeau = false
     for (let attempt = 0; ; attempt++) {
       // surveillance : s'il ne bouge plus du tout pendant 6 s alors qu'il suit un chemin (sans creuser ni poser), il est coincé
       let coince = false
@@ -151,6 +152,12 @@ function createActions (bot, memoire) {
         return await withTimeout(bot.pathfinder.goto(goal), ms, () => bot.pathfinder.setGoal(null))
       } catch (e) {
         if (coince && !ctx.abort && decoinces < 3) { decoinces++; attempt--; await decoincer(); continue }
+        // trajet raté dans l'eau (il nage mal) : il sort d'abord sur la berge, puis il repart de la terre ferme
+        if (!ctx.abort && !sortiDeLeau && !ctx.sortieEau && bot.entity?.isInWater) {
+          sortiDeLeau = true
+          const r = await sortirDeLeau()
+          if (r.ok) { attempt--; continue }
+        }
         if (ctx.abort || attempt >= 2) throw e
         // trajet coupé par la défense auto : on finit le combat puis on repart
         if (fighting()) { await waitFightEnd(); continue }
@@ -376,6 +383,93 @@ function createActions (bot, memoire) {
   }
 
   const nuitDehors = () => { const t = bot.time.timeOfDay; return t >= 12500 && t < 23000 }
+
+  // ---------- sortir de l'eau : le pathfinder nage mal (rivières, mer, grottes inondées) ----------
+  // On cherche la berge la plus proche où l'on sort d'un pas (sol solide au niveau de l'eau, ou 1 bloc
+  // plus haut), et on y nage tout droit, la tête hors de l'eau.
+  const EAU = /^(water|bubble_column|kelp|kelp_plant|seagrass|tall_seagrass)$/
+  const estEau = (b) => !!b && (EAU.test(b.name) || b.getProperties?.()?.waterlogged === true)
+  const libre = (b) => !!b && b.boundingBox === 'empty' && !estEau(b) && !/lava|fire/.test(b.name)
+  function estBerge (p) {
+    const sol = bot.blockAt(p.offset(0, -1, 0))
+    return !!sol && sol.boundingBox === 'block' && !estEau(sol) && !/magma|cactus|campfire/.test(sol.name) &&
+      libre(bot.blockAt(p)) && libre(bot.blockAt(p.offset(0, 1, 0)))
+  }
+  // en ligne droite jusqu'à la berge, rien ne bloque le passage (de l'eau ou de l'air à hauteur du corps) ?
+  function ligneLibre (de, a) {
+    const d = Math.hypot(a.x + 0.5 - de.x, a.z + 0.5 - de.z)
+    for (let s = 0.5; s < d - 1.2; s += 0.5) {
+      const x = Math.floor(de.x + (a.x + 0.5 - de.x) * s / d)
+      const z = Math.floor(de.z + (a.z + 0.5 - de.z) * s / d)
+      for (const dy of [0, 1]) {
+        const b = bot.blockAt(new Vec3(x, Math.floor(de.y) + dy, z))
+        if (!b || (b.boundingBox === 'block' && !estEau(b))) return false
+      }
+    }
+    return true
+  }
+  function trouverBerge (rayon = 24) {
+    const de = bot.entity.position
+    const o = de.floored()
+    const d2 = (p) => (p.x + 0.5 - de.x) ** 2 + (p.z + 0.5 - de.z) ** 2
+    let direct = null // la plus proche qu'on rejoint tout droit
+    let repli = null // la plus proche tout court (on y ira avec le pathfinder)
+    // on fouille par anneaux carrés autour de lui, en gardant la vraie distance la plus courte
+    for (let r = 1; r <= rayon; r++) {
+      if (direct && r * r > d2(direct)) break // tout ce qui reste est plus loin
+      for (let dx = -r; dx <= r; dx++) {
+        for (const dz of (Math.abs(dx) === r ? [...Array(2 * r + 1).keys()].map(k => k - r) : [-r, r])) {
+          for (const dy of [0, 1]) {
+            const p = o.offset(dx, dy, dz)
+            if (!estBerge(p)) continue
+            if ((!direct || d2(p) < d2(direct)) && ligneLibre(de, p)) direct = p
+            if (!repli || d2(p) < d2(repli)) repli = p
+          }
+        }
+      }
+    }
+    if (direct) return { p: direct, direct: true }
+    return repli ? { p: repli, direct: false } : null
+  }
+  async function sortirDeLeau () {
+    if (ctx.sortieEau) return { ok: false, texte: 'Je suis déjà en train de sortir de l\'eau.' }
+    if (!bot.entity?.isInWater) return { ok: true, texte: 'Je ne suis pas dans l\'eau.' }
+    ctx.sortieEau = true
+    try {
+      bot.pathfinder.setGoal(null)
+      bot.clearControlStates()
+      const cible = trouverBerge()
+      if (!cible) return { ok: false, texte: 'Aucune berge à moins de 24 blocs : je suis en pleine mer.' }
+      const { p, direct } = cible
+      if (direct) {
+        const but = new Vec3(p.x + 0.5, p.y + 1.2, p.z + 0.5)
+        const t0 = Date.now()
+        let meilleure = Infinity
+        let progres = Date.now()
+        while (Date.now() - t0 < 30000 && bot.entity) {
+          const pos = bot.entity.position
+          if (!bot.entity.isInWater && bot.entity.onGround) break
+          const d = Math.hypot(pos.x - but.x, pos.z - but.z)
+          if (d < meilleure - 0.3) { meilleure = d; progres = Date.now() }
+          if (Date.now() - progres > 5000) break // il n'avance plus
+          await bot.lookAt(but, true)
+          bot.setControlState('forward', true)
+          bot.setControlState('jump', true) // la tête hors de l'eau, et ça le fait grimper sur la berge
+          await sleep(100)
+        }
+        bot.clearControlStates()
+      }
+      // pas de ligne droite (ou il a buté) : le pathfinder finit le trajet
+      if (bot.entity.isInWater) {
+        await withTimeout(bot.pathfinder.goto(new GoalBlock(p.x, p.y, p.z)), 30000, () => bot.pathfinder.setGoal(null)).catch(() => {})
+      }
+      const ok = !bot.entity.isInWater
+      return { ok, texte: ok ? `Sorti de l'eau, sur la berge en ${fmt(bot.entity.position)}.` : `Je n'arrive pas à sortir de l'eau (berge visée : ${fmt(p)}).` }
+    } finally {
+      bot.clearControlStates()
+      ctx.sortieEau = false
+    }
+  }
   // ---------- abri d'urgence : un trou de 2 blocs rebouché au-dessus de la tête ----------
   async function abriExpress () {
     if (ctx.enAbri) return 'Je suis déjà dans mon abri.'
@@ -3081,8 +3175,24 @@ function createActions (bot, memoire) {
     let wasNight = isNight()
     const onTime = () => {
       const night = isNight()
+      // la nuit, l'eau est encore plus à éviter (noyés à trident, il nage mal) : il la contourne davantage
+      moves.liquidCost = night ? 10 : 4
       if (night && !wasNight) {
         const pieces = armorNames().length
+        // presque pas d'armure et personne avec lui : il s'enterre tout de suite, sans attendre une décision du cerveau
+        const joueurProche = Object.values(bot.players).some(j => j.entity && j.username !== bot.username && dist(j.entity.position) < 24)
+        if (pieces < 2 && /overworld/.test(bot.game.dimension || '') && !joueurProche && !ctx.enAbri && !ctx.abriEnCours && !bot.isSleeping && !bot.pvp.target && !bot.entity.isInWater) {
+          console.log(`  🕳 la nuit tombe et je n'ai que ${pieces} pièce(s) d'armure : je m'abrite sous terre`)
+          wasNight = night
+          ctx.abort = true
+          setTimeout(() => {
+            ctx.abort = false
+            abriExpress()
+              .then(r => ctx.onEvent?.(`[événement] La nuit tombe et tu n'as que ${pieces} pièce(s) d'armure. Réflexe abri d'urgence : ${r} Reste à l'abri jusqu'au matin ; si l'abri a échoué, rentre dans ta maison porte fermée.`))
+              .catch(() => {})
+          }, 300)
+          return
+        }
         ctx.onEvent?.(pieces >= 4
           ? '[événement] La nuit tombe : les monstres vont sortir.'
           : `[événement] La nuit tombe et tu n'as que ${pieces} pièce(s) d'armure : arrête ce que tu fais et mets-toi à l'abri MAINTENANT (dans ta maison/cabane porte fermée, ou abri_express sur place) jusqu'au matin. Dors si tu as un lit.`)
@@ -3242,6 +3352,60 @@ function createActions (bot, memoire) {
         bot.setControlState('jump', false)
       }
     }, 250)
+    // Coincé dans l'eau (le pathfinder nage mal), ou des noyés la nuit : je nage vers la berge la plus proche
+    let eauDepuis = 0
+    let eauPos = null
+    let eauPosT = 0
+    let derniereSortie = 0
+    const eau = setInterval(() => {
+      if (!bot.entity || bot.isSleeping || ctx.sortieEau || enNage) return
+      if (!bot.entity.isInWater) { eauDepuis = 0; return }
+      const now = Date.now()
+      if (!eauDepuis) { eauDepuis = now; eauPos = bot.entity.position.clone(); eauPosT = now; return }
+      if (bot.entity.position.distanceTo(eauPos) > 3) { eauPos = bot.entity.position.clone(); eauPosT = now }
+      if (now - derniereSortie < 20000) return
+      // dans l'eau exprès (pêche, seau, obsidienne) : on le laisse
+      if (/^(pecher|remplir_seau|faire_obsidienne)$/.test(ctx.actionEnCours?.nom || '')) return
+      // il suit un joueur qui nage à côté de lui : il reste avec lui
+      const suivi = ctx.followName && playerEntity(ctx.followName)
+      if (suivi && dist(suivi.position) < 8 && estEau(bot.blockAt(suivi.position))) return
+      const noyes = nuitDehors() && bot.nearestEntity(e => e.name === 'drowned' && dist(e.position) < 20)
+      const bloque = now - eauPosT > 8000 // 8 s sans avancer de 3 blocs
+      if (!bloque && !noyes) return
+      derniereSortie = now
+      console.log(noyes ? '  🏊 des noyés dans l\'eau, la nuit : je sors sur la berge' : '  🏊 coincé dans l\'eau : je nage vers la berge la plus proche')
+      ctx.abort = true
+      setTimeout(async () => {
+        ctx.abort = false
+        const r = await sortirDeLeau().catch(e => ({ ok: false, texte: e.message }))
+        console.log(`  🏊 ${r.texte}`)
+        ctx.onEvent?.(`[événement] ${noyes ? 'Des noyés (drowned) arrivaient dans l\'eau, la nuit' : 'Tu étais coincé dans l\'eau'} : ${r.texte} L'eau est ton point faible : contourne-la quand tu peux, surtout la nuit.`)
+      }, 300)
+    }, 1000)
+    // Un joueur se couche : la nuit ne passe que si tout le monde dort, alors il va dormir aussi
+    const onEntitySleep = (entity) => {
+      if (entity?.type !== 'player' || entity.username === bot.username || bot.isSleeping || ctx.dodoAuto) return
+      if (!/overworld/.test(bot.game.dimension || '')) return
+      ctx.dodoAuto = true
+      console.log(`  🛏 ${entity.username} s'est couché : je vais dormir aussi pour que la nuit passe`)
+      setTimeout(async () => {
+        try {
+          if (bot.pvp.target || ctx.fleeing || bot.isSleeping) return
+          ctx.abort = true // il arrête ce qu'il faisait
+          await sleep(400)
+          ctx.abort = false
+          const r = await run('dormir', {})
+          ctx.onEvent?.(`[événement] ${entity.username} s'est couché. La nuit ne passe que si tout le monde dort, alors j'ai essayé de dormir : ${r}`)
+        } catch (_) {} finally { ctx.dodoAuto = false }
+      }, 1000)
+    }
+    // il s'est relevé avant le matin : je me lève aussi
+    const onEntityWake = (entity) => {
+      if (entity?.type !== 'player' || entity.username === bot.username) return
+      setTimeout(() => { if (bot.isSleeping && nuitDehors()) bot.wake().catch(() => {}) }, 800)
+    }
+    bot.on('entitySleep', onEntitySleep)
+    bot.on('entityWake', onEntityWake)
     // Un enderman (neutre d'habitude) qui me frappe : je riposte
     const onHurt = (e) => {
       if (e !== bot.entity || !ctx.defense || ctx.fleeing || bot.pvp.target) return
@@ -3273,6 +3437,9 @@ function createActions (bot, memoire) {
       clearInterval(timer)
       clearInterval(esquive)
       clearInterval(anti_noyade)
+      clearInterval(eau)
+      bot.removeListener('entitySleep', onEntitySleep)
+      bot.removeListener('entityWake', onEntityWake)
       bot.removeListener('spawn', onSpawn)
       bot.removeListener('entityHurt', onHurt)
       bot.removeListener('stoppedAttacking', onStopped)
@@ -3285,6 +3452,12 @@ function createActions (bot, memoire) {
   async function run (name, input) {
     const fn = impl[name]
     if (!fn) return `Action inconnue : ${name}`
+    // il dort (souvent pour que la nuit passe avec son pote) : pas d'action qui le ferait se lever
+    const calme = /^(se_reveiller|retenir|memoriser_lieu|oublier_lieu|mode_autonome|regarder_autour|coffre_contenu)$/.test(name)
+    if (bot.isSleeping && !calme) {
+      return 'Je dors : la nuit passe quand tous les joueurs dorment. Attends le réveil (ou se_reveiller si un joueur te le demande).'
+    }
+    if (ctx.dodoAuto && name !== 'dormir' && !calme) return 'Je vais me coucher (un joueur dort, la nuit ne passe que si tout le monde dort) : attends le réveil.'
     const missing = requiredOf[name].filter(k => input?.[k] === undefined || input[k] === '')
     if (missing.length) return `Il manque : ${missing.join(', ')}. Rappelle l'action avec ces informations.`
     ctx.abort = false
