@@ -3,12 +3,20 @@
 // Elle garde les réglages dans le dossier de l'utilisateur (%APPDATA%\MineBuddy), lance le bot
 // en arrière-plan, et affiche ce qu'il fait en direct.
 
-const { app, BrowserWindow, ipcMain, safeStorage, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, Tray, Menu, nativeImage, Notification } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
+const dgram = require('dgram')
 const { fork } = require('child_process')
 
+// Pour les tests : MB_USERDATA=dossier utilise des réglages à part (ne touche pas aux vrais)
+if (process.env.MB_USERDATA) app.setPath('userData', process.env.MB_USERDATA)
+// photos d'écran de test : sans la carte graphique, les captures sont plus fiables
+if (process.env.MB_CAPTURE) app.disableHardwareAcceleration()
+
 const RACINE = path.join(__dirname, '..') // dossier du bot (index.js, actions.js...)
+const ICONE = path.join(__dirname, '..', 'build', 'icon.png')
 const DATA = () => app.getPath('userData')
 const FICHIER_CONFIG = () => path.join(DATA(), 'config.json')
 const MAX_LOGS = 500
@@ -37,7 +45,9 @@ const DEFAUT = {
   repondreATous: false,
   caractere: '',
   style: '',
-  regles: 'Ne casse jamais mes constructions et n\'attaque jamais de joueur.'
+  regles: 'Ne casse jamais mes constructions et n\'attaque jamais de joueur.',
+  arrierePlan: true, // fermer la fenêtre laisse le bot jouer (icône près de l'horloge)
+  guideVu: false // le guide des premiers pas a été fait ou passé
 }
 
 function lireConfig () {
@@ -115,6 +125,117 @@ function envoyerEtat () {
     connecte: !!botProc && !!dernierEtat?.connecte
   }
   fenetre?.webContents.send('bot:etat', etat)
+  majTray()
+}
+
+// ---------- mondes LAN ----------
+// Quand on ouvre un monde en LAN, Minecraft l'annonce sur le réseau toutes les 1,5 s
+// (message « [MOTD]nom du monde[/MOTD][AD]port[/AD] » vers 224.0.2.60:4445).
+// On écoute ces annonces : plus besoin de recopier le port à la main.
+const mondesLan = new Map() // "hote:port" -> { motd, hote, port, vu }
+let lanSocket = null
+
+function adressesLocales () {
+  const s = new Set(['127.0.0.1', '::1'])
+  for (const liste of Object.values(os.networkInterfaces())) for (const a of liste || []) s.add(a.address)
+  return s
+}
+const listeMondes = () => [...mondesLan.values()].map(({ motd, hote, port }) => ({ motd, hote, port }))
+function envoyerMondes () { fenetre?.webContents.send('lan:mondes', listeMondes()) }
+
+function ecouterLan () {
+  try {
+    lanSocket = dgram.createSocket({ type: 'udp4', reuseAddr: true })
+    lanSocket.on('error', () => { try { lanSocket.close() } catch (_) {} lanSocket = null })
+    lanSocket.on('message', (msg, rinfo) => {
+      const t = msg.toString('utf8')
+      const port = Number(/\[AD\](\d+)\[\/AD\]/.exec(t)?.[1])
+      if (!port || port > 65535) return
+      const motd = (/\[MOTD\]([\s\S]*?)\[\/MOTD\]/.exec(t)?.[1] || 'Monde LAN').replace(/§./g, '').trim().slice(0, 80)
+      const hote = adressesLocales().has(rinfo.address) ? 'localhost' : rinfo.address
+      const cle = `${hote}:${port}`
+      const nouveau = !mondesLan.has(cle)
+      mondesLan.set(cle, { motd, hote, port, vu: Date.now() })
+      if (nouveau) { envoyerMondes(); adopterMonde() }
+    })
+    lanSocket.bind(4445, () => {
+      // on écoute sur chaque carte réseau (Minecraft annonce sur celle par défaut)
+      try { lanSocket.addMembership('224.0.2.60') } catch (_) {}
+      for (const liste of Object.values(os.networkInterfaces())) {
+        for (const a of liste || []) {
+          if (a.family === 'IPv4' || a.family === 4) { try { lanSocket.addMembership('224.0.2.60', a.address) } catch (_) {} }
+        }
+      }
+    })
+  } catch (_) { lanSocket = null }
+  // un monde qui ne s'annonce plus depuis 6 s est fermé
+  setInterval(() => {
+    let change = false
+    for (const [k, m] of mondesLan) if (Date.now() - m.vu > 6000) { mondesLan.delete(k); change = true }
+    if (change) envoyerMondes()
+  }, 2000)
+}
+
+// adresse « à la maison » (pas un serveur sur Internet) : on peut la remplacer par le monde trouvé
+const adresseLocale = (h) => !h || /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)
+
+// Un seul monde ouvert en LAN : on l'utilise tout seul (et on relance le bot s'il cherchait ailleurs)
+function adopterMonde (force) {
+  const liste = [...mondesLan.values()]
+  const m = force || (liste.length === 1 ? liste[0] : null)
+  if (!m) return { ok: false }
+  const c = lireConfig()
+  if (!force && !adresseLocale(c.hote)) return { ok: false } // il joue sur un serveur : on ne touche à rien
+  if (c.hote === m.hote && Number(c.port) === m.port) return { ok: true }
+  if (!force && botProc && dernierEtat?.connecte) return { ok: false } // déjà en jeu : on ne le coupe pas
+  c.hote = m.hote
+  c.port = m.port
+  ecrireConfig(c)
+  ajouterLog(`📡 Monde LAN trouvé : « ${m.motd} » (port ${m.port}). Je l'utilise.`)
+  fenetre?.webContents.send('config:change')
+  if (botProc) { arreter(); setTimeout(demarrer, 2500) }
+  return { ok: true }
+}
+
+// ---------- icône près de l'horloge ----------
+let tray = null
+let quitter = false
+let dejaPrevenu = false
+let cleTray = ''
+
+function montrerFenetre () {
+  if (!fenetre) return creerFenetre()
+  if (fenetre.isMinimized()) fenetre.restore()
+  fenetre.show()
+  fenetre.focus()
+}
+function toutQuitter () {
+  quitter = true
+  arreter()
+  setTimeout(() => app.quit(), 900)
+}
+function creerTray () {
+  try {
+    tray = new Tray(nativeImage.createFromPath(ICONE).resize({ width: 16, height: 16 }))
+    tray.on('click', montrerFenetre)
+    majTray()
+  } catch (_) { tray = null }
+}
+function majTray () {
+  if (!tray) return
+  const lance = !!botProc
+  const connecte = lance && !!dernierEtat?.connecte
+  const cle = `${lance}-${connecte}`
+  if (cle === cleTray) return
+  cleTray = cle
+  tray.setToolTip(`MineBuddy : ${connecte ? 'le bot joue' : lance ? 'connexion au monde…' : 'bot arrêté'}`)
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Ouvrir MineBuddy', click: montrerFenetre },
+    { type: 'separator' },
+    lance ? { label: 'Arrêter le bot', click: () => arreter() } : { label: 'Démarrer le bot', click: () => demarrer() },
+    { type: 'separator' },
+    { label: 'Quitter MineBuddy', click: toutQuitter }
+  ]))
 }
 
 // ---------- le bot ----------
@@ -127,6 +248,7 @@ function demarrer () {
     return { ok: false, erreur: 'cle' }
   }
   if (!c.pseudo) ajouterLog('⚠ Ton pseudo Minecraft n\'est pas rempli (onglet Connexion) : le bot ne répondra que si on dit son nom.')
+  if (lanSocket && !mondesLan.size && adresseLocale(c.hote)) ajouterLog('📡 Aucun monde LAN repéré pour l\'instant : ouvre ton monde en LAN (Échap > Ouvrir au réseau local), je trouverai le port tout seul.')
   clearTimeout(relanceTimer)
   arretVoulu = false
   const env = {
@@ -246,6 +368,16 @@ function creerFenetre () {
     if (/^https:\/\//.test(url)) shell.openExternal(url)
     return { action: 'deny' }
   })
+  // fermer la fenêtre pendant que le bot joue : il continue en arrière-plan (icône près de l'horloge)
+  fenetre.on('close', (ev) => {
+    if (quitter || !botProc || !tray || lireConfig().arrierePlan === false) return
+    ev.preventDefault()
+    fenetre.hide()
+    if (!dejaPrevenu && Notification.isSupported()) {
+      dejaPrevenu = true
+      new Notification({ title: 'MineBuddy continue de jouer', body: 'Le bot reste dans ton monde. Clique sur l\'icône près de l\'horloge pour revenir ou tout arrêter.', icon: ICONE }).show()
+    }
+  })
   fenetre.on('closed', () => { fenetre = null })
   // Pour les tests : MB_CAPTURE=dossier photographie chaque écran puis ferme l'appli
   if (process.env.MB_CAPTURE) {
@@ -256,7 +388,29 @@ function creerFenetre () {
         const img = await fenetre.webContents.capturePage()
         fs.writeFileSync(path.join(dossier, `${nom}.png`), img.toPNG())
       }
+      const js = (code) => fenetre.webContents.executeJavaScript(code)
       await new Promise(r => setTimeout(r, 1500))
+      // le guide des premiers pas, s'il s'affiche
+      if (await js('!document.querySelector(\'#guide\').hidden')) {
+        for (const n of [1, 2, 3]) {
+          await js(`guideAller(${n})`)
+          await new Promise(r => setTimeout(r, 2500))
+          await photo(`guide-${n}`)
+        }
+        await js('fermerGuide()')
+      }
+      // MB_DEMO=1 : état de démonstration (inventaire, action) pour vérifier l'écran Pilotage sans monde ouvert
+      if (process.env.MB_DEMO) {
+        fenetre.webContents.send('bot:etat', {
+          lance: true, connecte: true, nom: 'Claude', adresse: 'localhost:50211', position: { x: -7, y: 76, z: -133 }, dimension: 'minecraft:overworld',
+          vie: 18, faim: 15, modele: 'claude-sonnet-5-5', depense: 0.42, budget: 3, jour: true, reflechit: false,
+          mission: 'trouver 5 diamants', action: { nom: 'miner_galerie', input: { longueur: 40 } },
+          equipement: { tete: 'iron_helmet', torse: 'iron_chestplate', jambes: null, pieds: 'iron_boots', main: 'iron_pickaxe' },
+          inventaire: [{ nom: 'cobblestone', nombre: 143 }, { nom: 'oak_log', nombre: 24 }, { nom: 'torch', nombre: 31 }, { nom: 'cooked_beef', nombre: 12 }, { nom: 'iron_ingot', nombre: 9 }, { nom: 'diamond', nombre: 3 }, { nom: 'coal', nombre: 17 }, { nom: 'stone_pickaxe', nombre: 1 }, { nom: 'red_bed', nombre: 1 }, { nom: 'water_bucket', nombre: 1 }, { nom: 'raw_gold', nombre: 4 }, { nom: 'redstone', nombre: 22 }]
+        })
+        await new Promise(r => setTimeout(r, 800))
+        await photo('pilotage-demo')
+      }
       for (const page of ['pilotage', 'connexion', 'memoire', 'personnalite']) {
         await fenetre.webContents.executeJavaScript(`document.querySelector('[data-page=${page}]').click()`)
         await new Promise(r => setTimeout(r, 900))
@@ -270,6 +424,21 @@ function creerFenetre () {
         arreter()
         await new Promise(r => setTimeout(r, 2500))
       }
+      // MB_TEST_FOND=1 : bot lancé, on ferme la fenêtre → elle doit se cacher et le bot continuer
+      if (process.env.MB_TEST_FOND) {
+        demarrer()
+        await new Promise(r => setTimeout(r, 1500))
+        fenetre.close()
+        await new Promise(r => setTimeout(r, 1500))
+        const res = { fenetreGardee: !!fenetre && !fenetre.isDestroyed(), visible: !!fenetre?.isVisible(), botTourne: !!botProc, icone: !!tray, prevenu: dejaPrevenu }
+        montrerFenetre()
+        await new Promise(r => setTimeout(r, 500))
+        res.revientAuClic = !!fenetre?.isVisible()
+        fs.writeFileSync(path.join(dossier, 'test-fond.json'), JSON.stringify(res, null, 2))
+        arreter()
+        await new Promise(r => setTimeout(r, 2500))
+      }
+      quitter = true
       app.quit()
     })
   }
@@ -325,13 +494,28 @@ ipcMain.handle('memoire:lire', () => {
 ipcMain.handle('memoire:op', (e, op, args) => operationMemoire(op, args || {}))
 ipcMain.handle('lien:ouvrir', (e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url) })
 ipcMain.handle('dossier:ouvrir', () => shell.openPath(DATA()))
-
-app.setAppUserModelId('com.aiko74.minebuddy')
-app.whenReady().then(() => {
-  importerAncienBot()
-  creerFenetre()
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creerFenetre() })
+ipcMain.handle('lan:mondes', () => ({ ecoute: !!lanSocket, mondes: listeMondes() }))
+ipcMain.handle('lan:utiliser', (e, m) => {
+  const port = Number(m?.port)
+  if (!port || port > 65535) return { ok: false }
+  return adopterMonde({ motd: String(m.motd || 'Monde LAN').slice(0, 80), hote: String(m.hote || 'localhost'), port })
 })
+
+// une seule MineBuddy à la fois : la relancer remontre la fenêtre déjà ouverte
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', montrerFenetre)
+  app.setAppUserModelId('com.aiko74.minebuddy')
+  app.whenReady().then(() => {
+    importerAncienBot()
+    creerFenetre()
+    if (!process.env.MB_CAPTURE || process.env.MB_TEST_FOND) creerTray()
+    ecouterLan()
+    app.on('activate', montrerFenetre)
+  })
+}
+app.on('before-quit', () => { quitter = true })
 app.on('window-all-closed', () => {
   arreter()
   setTimeout(() => app.quit(), 600)

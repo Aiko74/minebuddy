@@ -19,6 +19,7 @@
       <div class="side-pied">
         <div id="pied-modele">Cerveau : —</div>
         <div id="pied-depense">Aujourd'hui : 0,00 $</div>
+        <button class="lien-guide" id="btn-guide">Revoir le guide</button>
       </div>
     </aside>
 
@@ -34,6 +35,8 @@
           <div class="etat-infos">
             <div class="etat-ligne"><span class="nom" id="etat-nom">Claude</span><span class="badge" id="etat-badge">Arrêté</span></div>
             <div class="muted" id="etat-ou">—</div>
+            <div class="activite" id="activite" hidden></div>
+            <div class="monde-ligne" id="etat-monde" hidden></div>
             <div class="barres">
               <span>Vie</span><div class="bar"><div class="bar-in vie" id="bar-vie"></div></div><span id="txt-vie">—</span>
               <span>Faim</span><div class="bar"><div class="bar-in faim" id="bar-faim"></div></div><span id="txt-faim">—</span>
@@ -44,11 +47,19 @@
             <button class="bt" id="btn-arreter">Arrêter</button>
           </div>
         </div>
-        <div class="cd journal-cd">
-          <div class="cd-tete"><span>Activité en direct</span><span id="mission"></span>
-            <label class="petit"><input type="checkbox" id="chk-details"> Détails</label>
+        <div class="duo">
+          <div class="cd journal-cd">
+            <div class="cd-tete"><span>Activité en direct</span>
+              <label class="petit"><input type="checkbox" id="chk-details"> Détails</label>
+            </div>
+            <div class="journal" id="journal"></div>
           </div>
-          <div class="journal" id="journal"></div>
+          <div class="cd poches-cd">
+            <div class="cd-tete"><span>Équipement</span></div>
+            <div class="equip" id="equip"></div>
+            <div class="cd-tete"><span>Inventaire</span><span id="inv-total"></span></div>
+            <div class="inv" id="inv"></div>
+          </div>
         </div>
         <form class="ecrire" id="form-dire">
           <input type="text" id="txt-dire" placeholder="Écris-lui : va miner 30 min puis rentre à la base" autocomplete="off">
@@ -66,11 +77,14 @@
             <label>Nom du bot dans le jeu<input name="nomBot" maxlength="16" placeholder="Claude"></label>
             <label>Ton pseudo Minecraft<input name="pseudo" maxlength="16" placeholder="Aiko74"><small>Le bot t'écoute toujours, toi. Les autres doivent dire son nom.</small></label>
             <label class="ligne"><input type="checkbox" name="repondreATous"> Répondre à tous les joueurs</label>
+            <label class="ligne"><input type="checkbox" name="arrierePlan"> Quand je ferme la fenêtre, le bot continue de jouer (icône près de l'horloge)</label>
           </div>
           <div class="cd">
             <h2>Le monde</h2>
+            <div class="lan-tete">Mondes ouverts en LAN</div>
+            <div id="lan-liste" class="liste"></div>
             <label>Adresse<input name="hote" placeholder="localhost"><small>« localhost » si le monde est ouvert en LAN sur ce PC.</small></label>
-            <label>Port<input name="port" type="number" min="1" max="65535" placeholder="25565"><small>En LAN, le port s'affiche dans le chat quand tu ouvres le monde. Il change à chaque fois.</small></label>
+            <label>Port<input name="port" type="number" min="1" max="65535" placeholder="25565"><small>Rempli tout seul quand ton monde LAN est trouvé. Sinon, il s'affiche dans le chat du jeu à l'ouverture.</small></label>
             <label>Version de Minecraft<input name="version" placeholder="vide = automatique"></label>
             <label>Compte<select name="compte"><option value="offline">Hors ligne (LAN, sans compte)</option><option value="microsoft">Compte Microsoft</option></select></label>
           </div>
@@ -158,6 +172,54 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- PREMIERS PAS : guide en 3 étapes au premier lancement -->
+  <div class="voile" id="guide" hidden>
+    <div class="guide" role="dialog" aria-modal="true" aria-labelledby="guide-titre">
+      <div class="guide-tete">
+        <span class="logo-ic" data-ic="robot"></span>
+        <div class="guide-titres">
+          <div class="guide-sur">Premiers pas · étape <span id="g-num">1</span> sur 3</div>
+          <h2 id="guide-titre">Bienvenue dans MineBuddy</h2>
+        </div>
+        <div class="points"><span data-pt="1"></span><span data-pt="2"></span><span data-pt="3"></span></div>
+      </div>
+
+      <div class="guide-etape" data-etape="1">
+        <h3>Ta clé API Claude</h3>
+        <p class="muted">C'est le cerveau de ton bot. Crée-la sur le site d'Anthropic (payant à l'usage : tu choisis un budget par jour), puis colle-la ici.</p>
+        <label>Clé API<input type="password" id="g-cle" placeholder="sk-ant-..." autocomplete="off"><small id="g-cle-etat">Gardée chiffrée sur ce PC seulement. Elle n'est jamais affichée.</small></label>
+        <button type="button" class="bt lien" id="g-console">Obtenir une clé sur console.anthropic.com</button>
+      </div>
+
+      <div class="guide-etape" data-etape="2" hidden>
+        <h3>Toi et ton bot</h3>
+        <label>Ton pseudo Minecraft<input id="g-pseudo" maxlength="16" placeholder="Aiko74"><small>Le bot t'écoute toujours, toi : pas besoin de dire son nom.</small></label>
+        <label>Nom du bot dans le jeu<input id="g-nom" maxlength="16" placeholder="Claude"><small>3 à 16 lettres, chiffres ou _ (règle de Minecraft).</small></label>
+      </div>
+
+      <div class="guide-etape" data-etape="3" hidden>
+        <h3>Ouvre ton monde</h3>
+        <ol class="etapes-jeu">
+          <li>Lance Minecraft Java et entre dans ton monde.</li>
+          <li>Appuie sur <b>Échap</b>, puis <b>Ouvrir au réseau local</b>.</li>
+          <li>Clique sur <b>Lancer le monde en LAN</b>.</li>
+        </ol>
+        <div class="detecte" id="g-monde"><span class="pulse"></span><span>En attente de ton monde…</span></div>
+        <details class="manuel">
+          <summary>Ton monde n'apparaît pas ?</summary>
+          <label>Port affiché dans le chat du jeu<input id="g-port" type="number" min="1" max="65535" placeholder="par exemple 50211"></label>
+        </details>
+      </div>
+
+      <div class="erreur" id="g-err"></div>
+      <div class="guide-pied">
+        <button type="button" class="bt lien" id="g-passer">Passer le guide</button>
+        <button type="button" class="bt" id="g-retour">Retour</button>
+        <button type="button" class="bt prim" id="g-suivant">Suivant</button>
+      </div>
+    </div>
   </div>
   <script src="renderer.js"></script>
 </body>

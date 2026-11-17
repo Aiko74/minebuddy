@@ -3281,6 +3281,7 @@ function createActions (bot, memoire) {
     ctx.yieldReq = false
     ctx.runDeaths = ctx.deaths
     ctx.busy++
+    ctx.actionEnCours = { nom: name, input: input || {} } // affiché en direct dans l'appli
     try {
       // filet de sécurité : aucune action ne doit durer plus de 15 minutes (sinon le cerveau reste bloqué à l'attendre)
       let delai = false
@@ -3296,6 +3297,7 @@ function createActions (bot, memoire) {
       return ctx.deaths !== ctx.runDeaths ? `${out} (ATTENTION : tu es mort pendant cette action, ton stuff est resté à l'endroit de ta mort.)` : out
     } finally {
       ctx.busy--
+      if (!ctx.busy) ctx.actionEnCours = null
       // il suivait quelqu'un avant cette tâche : il s'y remet
       if (!ctx.busy && ctx.followName && !bot.pathfinder.goal) resumeFollow()
     }
@@ -3312,7 +3314,9 @@ function createActions (bot, memoire) {
     priorites,
     progression,
     isFollowing: () => !!ctx.followName,
+    suitQui: () => ctx.followName || null,
     isBusy: () => ctx.busy > 0,
+    actionEnCours: () => (ctx.busy ? ctx.actionEnCours : null),
     aLAbriLaNuit: () => !!ctx.enAbri && nuitDehors(),
     endMission: () => { ctx.mission = null },
     // un joueur parle pendant une tâche : les longues actions s'arrêtent pour lui répondre

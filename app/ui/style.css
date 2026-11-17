@@ -20,6 +20,10 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #34373d; border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #42464d; background-clip: padding-box; }
 html, body { margin: 0; height: 100%; background: var(--fond); color: var(--texte); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
 .app { display: grid; grid-template-columns: 200px minmax(0, 1fr); height: 100vh; }
@@ -85,8 +89,24 @@ svg { width: 18px; height: 18px; flex: none; }
 .bar-in.vie { background: var(--vie); }
 .bar-in.faim { background: var(--faim); }
 .etat-boutons { display: flex; flex-direction: column; gap: 8px; }
-.journal-cd { flex: 1; display: flex; flex-direction: column; min-height: 300px; }
-.journal { flex: 1; overflow-y: auto; max-height: calc(100vh - 360px); min-height: 240px; font-size: 13px; line-height: 1.85; }
+.activite { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 13px; color: #d6dadf; }
+.activite .act { color: var(--accent-texte); }
+.activite .mis { color: var(--muet); }
+.monde-ligne { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--muet); }
+/* le pilotage tient dans la fenêtre : seuls le journal et l'inventaire défilent */
+#page-pilotage { height: 100%; min-height: 540px; }
+.duo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 14px; }
+.journal-cd { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.journal { flex: 1; overflow-y: auto; min-height: 0; font-size: 13px; line-height: 1.85; }
+.poches-cd { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 14px 8px 14px 14px; }
+.equip { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; font-size: 13px; }
+.equip div, .inv div { display: flex; align-items: baseline; gap: 8px; }
+.equip .lab { color: var(--discret); font-size: 12px; width: 62px; flex: none; }
+.equip .obj, .inv .obj { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.equip .rien { color: var(--discret); }
+.inv { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; padding-right: 6px; }
+.inv .nb { color: var(--muet); font-variant-numeric: tabular-nums; font-size: 12px; }
+.inv .vide, .equip .vide { padding: 2px 0; }
 .lg { display: flex; gap: 10px; }
 .lg-t { color: var(--discret); flex: none; font-variant-numeric: tabular-nums; }
 .lg-x { white-space: pre-wrap; word-break: break-word; }
@@ -112,3 +132,40 @@ svg { width: 18px; height: 18px; flex: none; }
 .ajout-lieu { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 0.8fr)) 92px auto; gap: 6px; }
 .ajout-lieu input, .ajout-lieu select { padding: 8px 6px; min-width: 0; }
 .vide { color: var(--discret); font-size: 13px; padding: 6px 2px; }
+
+/* mondes LAN trouvés */
+.lan-tete { font-size: 13px; color: #c4c8ce; margin-bottom: 6px; }
+.monde { display: flex; align-items: center; gap: 8px; background: var(--fond); border-radius: var(--rayon); padding: 6px 8px 6px 10px; }
+.monde .m-nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.monde .coords { font-family: Consolas, monospace; font-size: 12px; color: var(--muet); }
+.monde .bt { padding: 4px 12px; font-size: 13px; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; box-shadow: 0 0 0 0 rgba(29, 158, 117, .6); animation: pulse 1.6s infinite; }
+.pulse.eteint { background: var(--discret); animation: none; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 7px rgba(29, 158, 117, 0); } 100% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0); } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+.lien-guide { margin-top: 6px; padding: 0; border: none; background: none; color: var(--accent-texte); font-size: 12px; cursor: pointer; }
+.lien-guide:hover { text-decoration: underline; }
+
+/* guide des premiers pas */
+.voile { position: fixed; inset: 0; background: rgba(8, 9, 11, .72); display: grid; place-items: center; z-index: 10; padding: 20px; }
+.guide { width: min(560px, 100%); background: var(--panneau); border: 1px solid var(--bord); border-radius: 14px; padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); }
+.guide-tete { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.guide-tete .logo-ic { width: 38px; height: 38px; border-radius: 10px; }
+.guide-titres { flex: 1; }
+.guide-sur { font-size: 12px; color: var(--muet); }
+.guide-tete h2 { margin: 0; font-size: 17px; }
+.points { display: flex; gap: 6px; }
+.points span { width: 22px; height: 4px; border-radius: 2px; background: var(--bord); }
+.points span.on { background: var(--accent); }
+.guide h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.guide p { margin: 0 0 12px; }
+.guide-etape { min-height: 210px; }
+.guide-etape .bt.lien { padding-left: 0; }
+.etapes-jeu { margin: 0 0 14px; padding-left: 20px; line-height: 1.9; color: #d6dadf; }
+.detecte { display: flex; align-items: center; gap: 10px; background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px 12px; }
+.detecte.ok { border-color: var(--accent); color: var(--accent-texte); }
+.manuel { margin-top: 12px; font-size: 13px; color: var(--muet); }
+.manuel summary { cursor: pointer; margin-bottom: 8px; }
+.manuel label { max-width: 220px; }
+.guide-pied { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.guide-pied #g-passer { margin-right: auto; color: var(--muet); padding-left: 0; }

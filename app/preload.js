@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('mb', {
   memoire: (op, args) => ipcRenderer.invoke('memoire:op', op, args),
   ouvrirLien: (url) => ipcRenderer.invoke('lien:ouvrir', url),
   ouvrirDossier: () => ipcRenderer.invoke('dossier:ouvrir'),
+  lanMondes: () => ipcRenderer.invoke('lan:mondes'),
+  utiliserMonde: (m) => ipcRenderer.invoke('lan:utiliser', m),
   surLog: (cb) => ipcRenderer.on('bot:log', (e, l) => cb(l)),
-  surEtat: (cb) => ipcRenderer.on('bot:etat', (e, s) => cb(s))
+  surEtat: (cb) => ipcRenderer.on('bot:etat', (e, s) => cb(s)),
+  surMondes: (cb) => ipcRenderer.on('lan:mondes', (e, m) => cb(m)),
+  surConfig: (cb) => ipcRenderer.on('config:change', () => cb())
 })

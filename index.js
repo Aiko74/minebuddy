@@ -97,6 +97,22 @@ if (DANS_APPLI) {
       setTimeout(() => process.exit(0), 800)
     }
   })
+  // l'appli s'est fermée (même brutalement) : le bot quitte le monde au lieu de rester tout seul
+  process.on('disconnect', () => {
+    try { etat.bot?.quit('MineBuddy fermé') } catch (_) {}
+    setTimeout(() => process.exit(0), 800)
+  })
+  // inventaire regroupé (36 objets max) et équipement, pour l'écran Pilotage
+  function poches (b) {
+    try {
+      const tas = new Map()
+      for (const it of b.inventory.items()) tas.set(it.name, (tas.get(it.name) || 0) + it.count)
+      const inventaire = [...tas].map(([nom, nombre]) => ({ nom, nombre })).sort((a, z) => z.nombre - a.nombre).slice(0, 36)
+      const slot = (i) => b.inventory.slots[i]?.name || null
+      const equipement = { tete: slot(5), torse: slot(6), jambes: slot(7), pieds: slot(8), main: b.heldItem?.name || null }
+      return { inventaire, equipement }
+    } catch (_) { return {} }
+  }
   // toutes les 2 s : l'état du bot pour l'écran Pilotage
   setInterval(() => {
     const b = etat.bot
@@ -117,7 +133,13 @@ if (DANS_APPLI) {
           modele: etat.brain?.model || env.MODEL || 'claude-haiku-5-5',
           depense: d && d.jour === aujourdhui ? d.usd : 0,
           budget: Number(env.BUDGET_USD || 8),
-          mission: etat.actions?.mission?.()?.objectif || null
+          mission: etat.actions?.mission?.()?.objectif || null,
+          // ce qu'il fait en ce moment, et s'il réfléchit (le cerveau attend Claude)
+          action: etat.connecte ? (etat.actions?.actionEnCours?.() || null) : null,
+          suit: etat.connecte ? (etat.actions?.suitQui?.() || null) : null,
+          reflechit: etat.connecte && !!etat.brain?.busy,
+          jour: etat.connecte ? !!b.time?.isDay : null,
+          ...(etat.connecte ? poches(b) : {})
         }
       })
     } catch (_) { /* l'appli est fermée */ }

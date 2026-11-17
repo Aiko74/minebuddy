@@ -22,7 +22,9 @@ Il ne casse **jamais** tes constructions et n'attaque **jamais** un joueur.
 
 1. Va dans [Releases](../../releases) et télécharge `MineBuddy-Setup-1.0.0.exe`.
 2. Lance-le. Windows peut afficher « Windows a protégé votre ordinateur » (l'appli n'est pas signée) : clique sur **Informations complémentaires**, puis **Exécuter quand même**.
-3. Ouvre **MineBuddy**.
+3. Ouvre **MineBuddy**. Au premier lancement, un **guide en 3 étapes** t'accompagne : ta clé API, ton pseudo et le nom du bot, puis ton monde.
+
+![Le guide des premiers pas](docs/guide.png)
 
 ## Ta clé API Claude
 
@@ -30,7 +32,7 @@ Le cerveau du bot, c'est Claude. Il te faut une clé (payante à l'usage) :
 
 1. Crée un compte sur [console.anthropic.com](https://console.anthropic.com), ajoute un peu de crédit.
 2. Va dans **API Keys** et crée une clé.
-3. Dans MineBuddy, onglet **Connexion**, colle-la dans **Clé API Claude**, puis **Tester la clé** et **Enregistrer**.
+3. Colle-la dans la première étape du guide (ou plus tard dans l'onglet **Connexion**, puis **Tester la clé** et **Enregistrer**).
 
 La clé reste chiffrée sur ton PC. Elle n'est jamais affichée ni envoyée ailleurs que chez Anthropic.
 
@@ -39,19 +41,23 @@ La clé reste chiffrée sur ton PC. Elle n'est jamais affichée ni envoyée aill
 ## Jouer avec lui
 
 1. Lance Minecraft (Java Edition) et ouvre ton monde.
-2. **Échap** > **Ouvrir au réseau local** > **Lancer le monde en LAN**. Le jeu affiche un **numéro de port** dans le chat (il change à chaque fois).
-3. Dans MineBuddy, onglet **Connexion** : mets ce port, ton pseudo Minecraft et le nom du bot, puis **Enregistrer**.
+2. **Échap** > **Ouvrir au réseau local** > **Lancer le monde en LAN**.
+3. MineBuddy **repère ton monde tout seul** et remplit le port (plus besoin de le recopier, même s'il change à chaque fois).
 4. Onglet **Pilotage** : **Démarrer**. Le bot rejoint ton monde et te dit salut.
 5. Parle-lui dans le chat du jeu, ou dans la case en bas de l'onglet Pilotage.
 
 Testé avec **Minecraft Java 26.1.2**. Pas besoin d'un deuxième compte : en LAN, il rejoint en mode hors ligne.
 
+Au premier lancement, Windows peut demander d'**autoriser MineBuddy sur le réseau** : accepte (réseaux privés), c'est ce qui lui permet de trouver ton monde. Si ton monde n'apparaît pas, tu peux toujours taper le port à la main (il s'affiche dans le chat du jeu quand tu ouvres le monde).
+
+**Il joue même fenêtre fermée** : si tu fermes MineBuddy pendant que le bot joue, il reste dans ton monde. Une petite icône près de l'horloge te permet de rouvrir l'appli, d'arrêter le bot ou de tout quitter. (Tu peux désactiver ça dans l'onglet Connexion.)
+
 ## Les onglets
 
 | Onglet | Ce que tu y fais |
 |---|---|
-| **Pilotage** | Démarrer / arrêter le bot, voir sa vie, sa faim, sa position, ce qu'il fait en direct, et lui écrire. |
-| **Connexion** | Nom du bot, ton pseudo, adresse et port du monde, le cerveau (Sonnet, Haiku, Opus), le budget, la clé API. |
+| **Pilotage** | Démarrer / arrêter le bot, voir sa vie, sa faim, sa position, ce qu'il fait en ce moment, sa mission, son équipement et son inventaire, et lui écrire. |
+| **Connexion** | Nom du bot, ton pseudo, les mondes LAN trouvés, adresse et port, le cerveau (Sonnet, Haiku, Opus), le budget, la clé API. |
 | **Mémoire** | Ses lieux (avec coordonnées) et ses souvenirs : les voir, en ajouter, les modifier, les effacer. |
 | **Personnalité** | Son caractère, sa façon de parler, tes règles, des modèles tout prêts (pote rigolo, pirate…), et le mode autonome. |
 
