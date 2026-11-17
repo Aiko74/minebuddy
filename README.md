@@ -2,6 +2,8 @@
 
 **Ton pote Minecraft piloté par l'IA Claude.** Tu lui parles normalement dans le chat du jeu, en français, et il comprend, réfléchit et joue avec toi. Pas de commandes à apprendre : « suis-moi », « va couper du bois », « fais-toi une pioche en pierre », « va miner 30 min puis on se retrouve à la base »… Il prend aussi des initiatives tout seul et se souvient de vos aventures.
 
+**[Télécharger pour Windows](https://github.com/Aiko74/minebuddy/releases/latest)** · [Le site de MineBuddy](https://aiko74.github.io/minebuddy/)
+
 ![L'écran Pilotage de MineBuddy](docs/pilotage.png)
 
 ## Ce qu'il sait faire
