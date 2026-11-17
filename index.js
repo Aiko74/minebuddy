@@ -33,7 +33,8 @@ if (!env.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY.startsWith('sk-ant-...')) {
 }
 
 const OWNER = env.OWNER || ''
-if (!OWNER || OWNER === 'TonPseudo') console.log('⚠ OWNER n\'est pas rempli dans .env : le bot ne répondra que si on dit son nom.')
+// (dans l'appli, c'est elle qui prévient : « Ton pseudo Minecraft n'est pas rempli (onglet Connexion) »)
+if ((!OWNER || OWNER === 'TonPseudo') && !DANS_APPLI) console.log('⚠ OWNER n\'est pas rempli dans .env : le bot ne répondra que si on dit son nom.')
 const RESPOND_ALL = env.RESPOND_ALL === 'true'
 const STOP_WORDS = /^(stop|arr[eê]te|arr[eê]te[- ]toi|stoppe|bouge plus|freeze)\b/i
 const HOST = env.MC_HOST || 'localhost'
