@@ -14,7 +14,9 @@ const ICONES = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',
   trash: '<path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   check: '<path d="M5 12l5 5 9-10"/>',
-  x: '<path d="M6 6l12 12M18 6L6 18"/>'
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+  coeur: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'
 }
 const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONES[n] || ''}</svg>`
 const posIcones = (racine = document) => racine.querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = svg(el.dataset.ic) })
@@ -95,10 +97,15 @@ function texteActivite (e) {
 }
 
 // ---------- navigation ----------
+let pageActuelle = 'pilotage'
 function allerA (page) {
   document.querySelectorAll('.nv').forEach(b => b.classList.toggle('on', b.dataset.page === page))
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === `page-${page}`))
-  if (page === 'memoire') chargerMemoire()
+  if (page === 'memoire' || page === 'carte') chargerMemoire()
+  // le bot ne calcule la carte que si on la regarde
+  if ((page === 'carte') !== (pageActuelle === 'carte')) mb.carteVisible(page === 'carte')
+  pageActuelle = page
+  if (page === 'carte') dessinerCarte()
 }
 document.querySelectorAll('.nv').forEach(b => b.addEventListener('click', () => allerA(b.dataset.page)))
 document.querySelectorAll('[data-aller]').forEach(b => b.addEventListener('click', () => allerA(b.dataset.aller)))
@@ -144,6 +151,7 @@ function afficherEtat (s) {
   $('#pied-depense').textContent = `Aujourd'hui : ${dollars(depense)} / ${dollars(e.lance ? (e.budget ?? config?.budget) : config?.budget)}`
   afficherPoches(e)
   afficherMondePilotage()
+  if (pageActuelle === 'carte') dessinerCarte()
 }
 mb.surEtat(afficherEtat)
 
@@ -186,7 +194,7 @@ function classer (texte) {
   if (/^(💀|❌|💥)/.test(t)) return 'mort'
   if (/^(⚠)/.test(t)) return 'err'
   if (/^(❤|🫧|🕳|🏃)/.test(t)) return 'vie'
-  if (/^(✅|🔄|🔑|🔌|▶|⏹|💸|💬|📡)/.test(t)) return 'info'
+  if (/^(✅|🔄|🔑|🔌|▶|⏹|💸|💬|📡|⬆)/.test(t)) return 'info'
   return 'detail'
 }
 function ligneJournal (l) {
@@ -429,6 +437,169 @@ $('#btn-perso').addEventListener('click', async () => {
   $('#msg-perso').textContent = etatBot.lance ? 'Enregistré. Redémarre le bot (onglet Connexion) pour appliquer.' : 'Enregistré.'
 })
 
+// ---------- carte en direct ----------
+// couleurs des familles de blocs envoyées par le bot (voir carte.js) : 0 = pas chargé
+const COULEURS = ['#15161a', '#5f9c48', '#3e7533', '#7b5b37', '#3a6cc0', '#d9cb8e', '#8c8f94', '#86603f', '#e8edf1',
+  '#e8752a', '#8e3a3a', '#d8d4a0', '#c58a4c', '#8c8f94', '#a9b84b', '#4b4d53', '#a5664a']
+const RVB = COULEURS.map(h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)))
+const ECHELLE = 8 // pixels par bloc sur le dessin
+const NOMS_DIMS = { overworld: 'Monde normal', the_nether: 'Nether', the_end: 'End' }
+const dimCourte = (d) => String(d || 'overworld').replace('minecraft:', '')
+const POINTS = ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest']
+const direction = (dx, dz) => POINTS[(Math.round(Math.atan2(dx, -dz) / (Math.PI / 4)) + 8) % 8] // 0 = nord
+let carteData = null
+mb.surCarte((c) => { carteData = c; if (pageActuelle === 'carte') dessinerCarte() })
+
+const tampon = document.createElement('canvas')
+function dessinerCarte () {
+  const cv = $('#carte')
+  const ctx = cv.getContext('2d')
+  const e = etatBot
+  afficherLieuxCarte()
+  const ok = e.connecte && carteData
+  $('#carte-vide').hidden = !!ok
+  $('#carte-vide').textContent = e.connecte ? 'Chargement de la carte…' : 'La carte s\'affiche quand le bot est en jeu.'
+  if (!ok) { ctx.clearRect(0, 0, cv.width, cv.height); $('#carte-info').textContent = ''; return }
+  const { rayon: R, familles, hauteurs, cx, cz } = carteData
+  const cote = R * 2 + 1
+  if (cv.width !== cote * ECHELLE) { cv.width = cote * ECHELLE; cv.height = cote * ECHELLE }
+
+  // le terrain : une case par bloc ; relief comme sur les cartes du jeu (plus clair si ça monte vers le sud)
+  tampon.width = cote
+  tampon.height = cote
+  const tctx = tampon.getContext('2d')
+  const img = tctx.createImageData(cote, cote)
+  for (let i = 0; i < cote * cote; i++) {
+    const h = hauteurs[i]
+    let [r, g, b] = RVB[familles[i]] || RVB[6]
+    if (h == null) [r, g, b] = RVB[0]
+    else {
+      const hn = i >= cote ? hauteurs[i - cote] : null
+      let f = 1 + Math.max(-0.25, Math.min(0.25, h * 0.012))
+      if (hn != null) f *= h > hn ? 1.14 : h < hn ? 0.84 : 1
+      r = Math.min(255, r * f); g = Math.min(255, g * f); b = Math.min(255, b * f)
+    }
+    img.data[i * 4] = r; img.data[i * 4 + 1] = g; img.data[i * 4 + 2] = b; img.data[i * 4 + 3] = 255
+  }
+  tctx.putImageData(img, 0, 0)
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(tampon, 0, 0, cv.width, cv.height)
+
+  // repères : position à l'écran d'un point du monde (nord en haut)
+  const ecran = (x, z) => [(Math.floor(x) - cx + R + 0.5) * ECHELLE, (Math.floor(z) - cz + R + 0.5) * ECHELLE]
+  const dedans = ([sx, sy]) => sx >= 0 && sy >= 0 && sx <= cv.width && sy <= cv.height
+  ctx.font = '600 22px "Segoe UI", sans-serif'
+  const prises = [] // étiquettes déjà posées : une étiquette qui en chevaucherait une autre n'est pas affichée
+  const etiquette = (txt, sx, sy, dy = -46) => {
+    const w = ctx.measureText(txt).width + 16
+    const x = Math.max(4, Math.min(cv.width - w - 4, sx - w / 2))
+    const y = Math.max(4, Math.min(cv.height - 34, sy + dy))
+    if (prises.some(p => x < p.x + p.w + 4 && p.x < x + w + 4 && y < p.y + 34 && p.y < y + 34)) return
+    prises.push({ x, y, w })
+    ctx.fillStyle = 'rgba(15, 16, 19, .82)'
+    ctx.beginPath(); ctx.roundRect(x, y, w, 30, 8); ctx.fill()
+    ctx.fillStyle = '#e8eaed'
+    ctx.fillText(txt, x + 8, y + 22)
+  }
+  const point = (sx, sy, couleur) => {
+    ctx.beginPath(); ctx.arc(sx, sy, 9, 0, Math.PI * 2)
+    ctx.fillStyle = couleur; ctx.fill()
+    ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke()
+  }
+  const fleche = (sx, sy, ang, couleur, taille = 1) => {
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang); ctx.scale(taille, taille)
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-10, -11); ctx.lineTo(-5, 0); ctx.lineTo(-10, 11); ctx.closePath()
+    ctx.fillStyle = couleur; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.restore()
+  }
+  // les joueurs que le bot voit (leurs noms passent en premier)
+  for (const j of e.joueurs || []) {
+    const s = ecran(j.x, j.z)
+    if (dedans(s)) { point(s[0], s[1], '#5b9cf0'); etiquette(j.nom, s[0], s[1]) }
+  }
+  // les lieux retenus de cette dimension ; ceux qui sont loin : une flèche au bord, dans leur direction
+  const dim = dimCourte(e.dimension)
+  const loin = []
+  for (const [nom, l] of Object.entries(memoire.lieux || {})) {
+    if (dimCourte(l.dimension) !== dim) continue
+    const s = ecran(l.x, l.z)
+    if (dedans(s)) { point(s[0], s[1], '#f0b443'); etiquette(nom, s[0], s[1]) } else loin.push([nom, s])
+  }
+  for (const [nom, s] of loin) {
+    const ang = Math.atan2(s[1] - cv.height / 2, s[0] - cv.width / 2)
+    const k = (cv.width / 2 - 20) / Math.max(Math.abs(Math.cos(ang)), Math.abs(Math.sin(ang)))
+    const bx = cv.width / 2 + Math.cos(ang) * k
+    const by = cv.height / 2 + Math.sin(ang) * k
+    fleche(bx, by, ang, '#f0b443', 0.8)
+    etiquette(nom, bx - Math.cos(ang) * 46, by - Math.sin(ang) * 30, -15)
+  }
+  // le bot, tourné dans la direction où il regarde
+  if (e.position) {
+    const [sx, sy] = ecran(e.position.x, e.position.z)
+    const yaw = e.yaw ?? 0
+    fleche(sx, sy, Math.atan2(-Math.cos(yaw), -Math.sin(yaw)), '#1d9e75')
+  }
+  const p = e.position
+  $('#carte-info').textContent = p
+    ? `${NOMS_DIMS[dim] || dim} · bot en ${p.x} ${p.y} ${p.z}${carteData.sousTerre ? ' · vue sous terre' : ''} · nord en haut`
+    : ''
+}
+// survol : les coordonnées de la case sous la souris
+$('#carte').addEventListener('mousemove', (ev) => {
+  if (!carteData || !etatBot.connecte) return
+  const { rayon: R, cx, cz, y, hauteurs } = carteData
+  const cote = R * 2 + 1
+  const r = ev.currentTarget.getBoundingClientRect()
+  const col = Math.min(cote - 1, Math.max(0, Math.floor((ev.clientX - r.left) / r.width * cote)))
+  const lig = Math.min(cote - 1, Math.max(0, Math.floor((ev.clientY - r.top) / r.height * cote)))
+  const h = hauteurs[lig * cote + col]
+  $('#carte-survol').textContent = `x ${cx - R + col} · z ${cz - R + lig}${h != null ? ` · y ${y + h}` : ''}`
+})
+$('#carte').addEventListener('mouseleave', () => { $('#carte-survol').textContent = '' })
+
+// la liste des lieux, avec la distance et la direction depuis le bot
+let derniersLieux = ''
+function afficherLieuxCarte () {
+  const e = etatBot
+  const dim = dimCourte(e.dimension)
+  const lieux = Object.entries(memoire.lieux || {})
+  const html = lieux.length
+    ? lieux.map(([nom, l]) => {
+      const proche = e.connecte && e.position && dimCourte(l.dimension) === dim
+      const dx = l.x - (e.position?.x ?? 0)
+      const dz = l.z - (e.position?.z ?? 0)
+      const d = Math.round(Math.hypot(dx, dz))
+      const loin = proche ? (d < 3 ? 'il y est' : `${d} blocs · ${direction(dx, dz)}`) : `${l.x} ${l.y} ${l.z} · ${NOMS_DIMS[dimCourte(l.dimension)] || ''}`
+      return `<div class="ligne-l"><span class="nom-l">${esc(nom)}</span>${e.connecte
+        ? `<button class="bt" data-y-aller="${esc(nom)}">Y aller</button>` : ''}<span class="loin">${esc(loin)}</span></div>`
+    }).join('')
+    : '<div class="vide">Aucun lieu retenu. Dis-lui « retiens cet endroit comme la base », ou ajoute-les dans Mémoire.</div>'
+  if (html === derniersLieux) return
+  derniersLieux = html
+  $('#carte-lieux').innerHTML = html
+}
+// « Y aller » : on lui demande en langage naturel, comme dans le chat
+$('#carte-lieux').addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-y-aller]')
+  if (!b) return
+  const r = await mb.dire(`Va au lieu « ${b.dataset.yAller} »`)
+  b.textContent = r.ok ? 'Demandé' : 'Pas lancé'
+  setTimeout(() => { b.textContent = 'Y aller' }, 2500)
+})
+
+// ---------- mises à jour, version, soutien ----------
+function afficherMaj (m) {
+  const el = $('#maj')
+  el.hidden = !m
+  if (!m) return
+  el.innerHTML = m.etat === 'prete'
+    ? `<span>Nouvelle version ${esc(m.version)} prête.</span><button class="bt prim" id="btn-maj">Redémarrer pour l'installer</button>`
+    : `<span>Téléchargement de la version ${esc(m.version)}… ${m.pourcent || 0} %</span>`
+  $('#btn-maj')?.addEventListener('click', () => mb.installerMaj())
+}
+mb.surMaj(afficherMaj)
+let lienSoutien = ''
+$('#btn-soutien').addEventListener('click', () => { if (lienSoutien) mb.ouvrirLien(lienSoutien) })
+
 // ---------- guide des premiers pas ----------
 let etapeGuide = 1
 const TITRES_GUIDE = ['Bienvenue dans MineBuddy', 'Presque prêt', 'Dernière étape']
@@ -528,6 +699,11 @@ document.addEventListener('keydown', (k) => { if (k.key === 'Escape' && !$('#gui
 
 // ---------- au démarrage ----------
 ;(async () => {
+  const infos = await mb.infos()
+  $('#version').textContent = `v${infos.version}`
+  afficherMaj(infos.maj)
+  lienSoutien = infos.soutien || ''
+  $('#btn-soutien').hidden = !lienSoutien
   const lan = await mb.lanMondes()
   lanEcoute = !!lan.ecoute
   mondes = lan.mondes || []

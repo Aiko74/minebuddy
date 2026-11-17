@@ -197,6 +197,46 @@ function adopterMonde (force) {
   return { ok: true }
 }
 
+// ---------- mises à jour automatiques (depuis les « Releases » GitHub du projet) ----------
+// Ta page de dons (Ko-fi, Tipeee...) : le bouton « Soutenir » apparaît dans l'appli dès que c'est rempli
+const LIEN_SOUTIEN = ''
+let majEtat = null // { etat: 'telechargement' | 'prete', version, pourcent }
+let majErreur = null // dernière erreur de vérification (pour les tests)
+let autoUpdater = null
+function envoyerMaj () { fenetre?.webContents.send('maj:etat', majEtat) }
+function lancerMisesAJour () {
+  // seulement dans l'appli installée (MB_TEST_MAJ=1 : aussi pendant les tests)
+  if (!app.isPackaged || (process.env.MB_CAPTURE && !process.env.MB_TEST_MAJ)) return
+  try { ({ autoUpdater } = require('electron-updater')) } catch (_) { return }
+  autoUpdater.logger = null
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true // installée toute seule à la fermeture de l'appli
+  autoUpdater.on('update-available', (i) => { majEtat = { etat: 'telechargement', version: i.version, pourcent: 0 }; envoyerMaj() })
+  autoUpdater.on('download-progress', (p) => { if (majEtat) { majEtat.pourcent = Math.round(p.percent || 0); envoyerMaj() } })
+  autoUpdater.on('update-downloaded', (i) => {
+    majEtat = { etat: 'prete', version: i.version }
+    envoyerMaj()
+    ajouterLog(`⬆ Nouvelle version ${i.version} prête : elle s'installera à la fermeture de MineBuddy (ou bouton « Redémarrer »).`)
+  })
+  // pas d'Internet, aucune version publiée... : on réessaiera plus tard, sans déranger
+  autoUpdater.on('error', (err) => {
+    majErreur = String(err?.message || err).split('\n')[0].slice(0, 200)
+    if (majEtat?.etat === 'telechargement') { majEtat = null; envoyerMaj() }
+  })
+  const verifier = () => autoUpdater.checkForUpdates().catch(() => {})
+  setTimeout(verifier, 8000)
+  setInterval(verifier, 6 * 3600 * 1000)
+}
+function installerMaj () {
+  if (majEtat?.etat !== 'prete' || !autoUpdater) return { ok: false }
+  arreter() // le bot quitte le monde proprement avant
+  setTimeout(() => { quitter = true; autoUpdater.quitAndInstall(true, true) }, 2500)
+  return { ok: true }
+}
+
+// ---------- carte en direct : le bot ne calcule la carte que si l'onglet Carte est ouvert ----------
+let carteVisible = false
+
 // ---------- icône près de l'horloge ----------
 let tray = null
 let quitter = false
@@ -283,8 +323,10 @@ function demarrer () {
   }
   lignes(botProc.stdout)
   lignes(botProc.stderr)
+  if (carteVisible) botProc.send({ type: 'carte', actif: true })
   botProc.on('message', (m) => {
     if (m?.type === 'status') { dernierEtat = m.data; envoyerEtat() }
+    if (m?.type === 'carte') fenetre?.webContents.send('bot:carte', m.data)
     if (m?.type === 'memoire' && enAttente.has(m.id)) { enAttente.get(m.id)(m); enAttente.delete(m.id) }
   })
   botProc.on('exit', (code) => {
@@ -404,14 +446,22 @@ function creerFenetre () {
         fenetre.webContents.send('bot:etat', {
           lance: true, connecte: true, nom: 'Claude', adresse: 'localhost:50211', position: { x: -7, y: 76, z: -133 }, dimension: 'minecraft:overworld',
           vie: 18, faim: 15, modele: 'claude-sonnet-5-5', depense: 0.42, budget: 3, jour: true, reflechit: false,
+          yaw: 2.3, joueurs: [{ nom: 'Aiko74', x: 4, y: 76, z: -140 }],
           mission: 'trouver 5 diamants', action: { nom: 'miner_galerie', input: { longueur: 40 } },
           equipement: { tete: 'iron_helmet', torse: 'iron_chestplate', jambes: null, pieds: 'iron_boots', main: 'iron_pickaxe' },
           inventaire: [{ nom: 'cobblestone', nombre: 143 }, { nom: 'oak_log', nombre: 24 }, { nom: 'torch', nombre: 31 }, { nom: 'cooked_beef', nombre: 12 }, { nom: 'iron_ingot', nombre: 9 }, { nom: 'diamond', nombre: 3 }, { nom: 'coal', nombre: 17 }, { nom: 'stone_pickaxe', nombre: 1 }, { nom: 'red_bed', nombre: 1 }, { nom: 'water_bucket', nombre: 1 }, { nom: 'raw_gold', nombre: 4 }, { nom: 'redstone', nombre: 22 }]
         })
         await new Promise(r => setTimeout(r, 800))
         await photo('pilotage-demo')
+        // MB_DEMO_CARTE=fichier.json : une carte toute faite (calculée hors jeu) pour vérifier l'onglet Carte
+        if (process.env.MB_DEMO_CARTE) {
+          await js('document.querySelector(\'[data-page=carte]\').click()')
+          fenetre.webContents.send('bot:carte', JSON.parse(fs.readFileSync(process.env.MB_DEMO_CARTE, 'utf8')))
+          await new Promise(r => setTimeout(r, 1500))
+          await photo('carte-demo')
+        }
       }
-      for (const page of ['pilotage', 'connexion', 'memoire', 'personnalite']) {
+      for (const page of ['pilotage', 'carte', 'connexion', 'memoire', 'personnalite']) {
         await fenetre.webContents.executeJavaScript(`document.querySelector('[data-page=${page}]').click()`)
         await new Promise(r => setTimeout(r, 900))
         await photo(page)
@@ -437,6 +487,11 @@ function creerFenetre () {
         fs.writeFileSync(path.join(dossier, 'test-fond.json'), JSON.stringify(res, null, 2))
         arreter()
         await new Promise(r => setTimeout(r, 2500))
+      }
+      // MB_TEST_MAJ=1 : on attend la vérification des mises à jour et on note le résultat
+      if (process.env.MB_TEST_MAJ) {
+        await new Promise(r => setTimeout(r, 14000))
+        fs.writeFileSync(path.join(dossier, 'test-maj.json'), JSON.stringify({ version: app.getVersion(), majEtat, majErreur, toujoursOuverte: !!fenetre && !fenetre.isDestroyed() }, null, 2))
       }
       quitter = true
       app.quit()
@@ -494,6 +549,12 @@ ipcMain.handle('memoire:lire', () => {
 ipcMain.handle('memoire:op', (e, op, args) => operationMemoire(op, args || {}))
 ipcMain.handle('lien:ouvrir', (e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url) })
 ipcMain.handle('dossier:ouvrir', () => shell.openPath(DATA()))
+ipcMain.handle('appli:infos', () => ({ version: app.getVersion(), soutien: LIEN_SOUTIEN, maj: majEtat }))
+ipcMain.handle('maj:installer', () => installerMaj())
+ipcMain.handle('carte:visible', (e, v) => {
+  carteVisible = !!v
+  try { if (botProc?.connected) botProc.send({ type: 'carte', actif: carteVisible }) } catch (_) {}
+})
 ipcMain.handle('lan:mondes', () => ({ ecoute: !!lanSocket, mondes: listeMondes() }))
 ipcMain.handle('lan:utiliser', (e, m) => {
   const port = Number(m?.port)
@@ -512,6 +573,7 @@ if (!app.requestSingleInstanceLock()) {
     creerFenetre()
     if (!process.env.MB_CAPTURE || process.env.MB_TEST_FOND) creerTray()
     ecouterLan()
+    lancerMisesAJour()
     app.on('activate', montrerFenetre)
   })
 }

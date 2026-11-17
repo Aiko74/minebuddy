@@ -12,14 +12,17 @@
       <div class="logo"><span class="logo-ic" data-ic="robot"></span><span>MineBuddy</span></div>
       <nav>
         <button class="nv on" data-page="pilotage"><span data-ic="play"></span>Pilotage</button>
+        <button class="nv" data-page="carte"><span data-ic="map"></span>Carte</button>
         <button class="nv" data-page="connexion"><span data-ic="plug"></span>Connexion</button>
         <button class="nv" data-page="memoire"><span data-ic="pin"></span>Mémoire</button>
         <button class="nv" data-page="personnalite"><span data-ic="smile"></span>Personnalité</button>
       </nav>
       <div class="side-pied">
+        <div class="maj" id="maj" hidden></div>
+        <button class="soutien" id="btn-soutien" hidden><span data-ic="coeur"></span>Soutenir MineBuddy</button>
         <div id="pied-modele">Cerveau : —</div>
         <div id="pied-depense">Aujourd'hui : 0,00 $</div>
-        <button class="lien-guide" id="btn-guide">Revoir le guide</button>
+        <div class="pied-bas"><button class="lien-guide" id="btn-guide">Revoir le guide</button><span id="version"></span></div>
       </div>
     </aside>
 
@@ -66,6 +69,29 @@
           <button class="bt prim" aria-label="Envoyer"><span data-ic="send"></span></button>
         </form>
         <div class="erreur" id="err-dire"></div>
+      </section>
+
+      <!-- CARTE -->
+      <section class="page" id="page-carte">
+        <h1>Carte</h1>
+        <div class="carte-grille">
+          <div class="cd carte-cd">
+            <div class="carte-boite">
+              <canvas id="carte" width="648" height="648" aria-label="Carte vue de dessus autour du bot"></canvas>
+              <div class="carte-vide" id="carte-vide">La carte s'affiche quand le bot est en jeu.</div>
+            </div>
+            <div class="carte-pied"><span id="carte-info"></span><span id="carte-survol"></span></div>
+          </div>
+          <div class="cd lieux-cd">
+            <h2>Lieux retenus</h2>
+            <div id="carte-lieux" class="liste"></div>
+            <div class="legende">
+              <span><i class="pt bot"></i>Le bot</span>
+              <span><i class="pt joueur"></i>Joueurs</span>
+              <span><i class="pt lieu"></i>Lieux</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- CONNEXION -->

@@ -24,6 +24,8 @@ Il ne casse **jamais** tes constructions et n'attaque **jamais** un joueur.
 2. Lance-le. Windows peut afficher « Windows a protégé votre ordinateur » (l'appli n'est pas signée) : clique sur **Informations complémentaires**, puis **Exécuter quand même**.
 3. Ouvre **MineBuddy**. Au premier lancement, un **guide en 3 étapes** t'accompagne : ta clé API, ton pseudo et le nom du bot, puis ton monde.
 
+Ensuite, MineBuddy **se met à jour tout seul** : quand une nouvelle version sort, elle se télécharge en arrière-plan et s'installe à la fermeture (ou tout de suite avec le bouton « Redémarrer »).
+
 ![Le guide des premiers pas](docs/guide.png)
 
 ## Ta clé API Claude
@@ -57,6 +59,7 @@ Au premier lancement, Windows peut demander d'**autoriser MineBuddy sur le rése
 | Onglet | Ce que tu y fais |
 |---|---|
 | **Pilotage** | Démarrer / arrêter le bot, voir sa vie, sa faim, sa position, ce qu'il fait en ce moment, sa mission, son équipement et son inventaire, et lui écrire. |
+| **Carte** | Une carte vue de dessus autour du bot, en direct : le terrain, toi, le bot et ses lieux retenus (avec un bouton « Y aller »). |
 | **Connexion** | Nom du bot, ton pseudo, les mondes LAN trouvés, adresse et port, le cerveau (Sonnet, Haiku, Opus), le budget, la clé API. |
 | **Mémoire** | Ses lieux (avec coordonnées) et ses souvenirs : les voir, en ajouter, les modifier, les effacer. |
 | **Personnalité** | Son caractère, sa façon de parler, tes règles, des modèles tout prêts (pote rigolo, pirate…), et le mode autonome. |
@@ -85,6 +88,8 @@ npm run bot        # le bot seul en ligne de commande (réglages dans .env, voir
 ```
 
 Pour `npm run dist`, mets le projet dans un dossier au chemin court (par exemple `C:\minebuddy`) : l'outil qui fabrique l'installateur plante si le chemin dépasse 260 caractères.
+
+**Publier une nouvelle version** : augmente `version` dans `package.json`, lance `npm run dist`, puis crée une Release GitHub (tag `v1.0.1` par exemple) avec ces 3 fichiers de `dist/` : `MineBuddy-Setup-x.y.z.exe`, `MineBuddy-Setup-x.y.z.exe.blockmap` et `latest.yml`. Les appli déjà installées la trouvent toutes seules (c'est `latest.yml` qui leur dit qu'elle existe).
 
 | Fichier | Rôle |
 |---|---|

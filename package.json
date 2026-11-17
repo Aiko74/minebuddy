@@ -12,7 +12,7 @@
     "bot-seul": "node index.js",
     "test-api": "node test-api.js",
     "icone": "node scripts/icone.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --publish never"
   },
   "engines": {
     "node": ">=18"
@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.9.0",
     "dotenv": "^16.4.5",
+    "electron-updater": "^6.8.11",
     "mineflayer": "^4.23.0",
     "mineflayer-collectblock": "^1.4.1",
     "mineflayer-pathfinder": "^2.4.5",
@@ -33,6 +34,13 @@
   "build": {
     "appId": "com.aiko74.minebuddy",
     "productName": "MineBuddy",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Aiko74",
+        "repo": "minebuddy"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -43,6 +51,7 @@
       "actions.js",
       "brain.js",
       "memoire.js",
+      "carte.js",
       "package.json",
       "build/icon.png",
       "!**/minecraft-data/data/bedrock/[0-9]*/**",

@@ -8,6 +8,7 @@ const collectBlock = require('mineflayer-collectblock').plugin
 const { createActions } = require('./actions')
 const { Brain } = require('./brain')
 const { createMemoire } = require('./memoire')
+const { creerCarte } = require('./carte')
 
 // Tout ce qui s'affiche dans le terminal est aussi écrit dans bot.log (pratique pour déboguer)
 const fs = require('fs')
@@ -91,12 +92,32 @@ if (DANS_APPLI) {
       }
       return
     }
+    // onglet Carte ouvert ou fermé dans l'appli : on calcule la carte seulement quand elle est regardée
+    if (m.type === 'carte') {
+      carteActive = !!m.actif
+      if (carteActive) setTimeout(envoyerCarte, 100)
+      return
+    }
     // bouton « Arrêter » : il se déconnecte proprement
     if (m.type === 'stop') {
       try { etat.bot?.quit('Arrêté depuis MineBuddy') } catch (_) {}
       setTimeout(() => process.exit(0), 800)
     }
   })
+  // carte en direct (toutes les 4 s, seulement si l'onglet Carte est ouvert)
+  let carteActive = false
+  let carteEnCours = false
+  let carte = null // calculateur lié au bot de la connexion en cours
+  async function envoyerCarte () {
+    if (!carteActive || !etat.connecte || !etat.bot || carteEnCours) return
+    carteEnCours = true
+    try {
+      if (carte?.bot !== etat.bot) carte = { bot: etat.bot, ...creerCarte(etat.bot) }
+      const data = await carte.calculer()
+      if (data) process.send({ type: 'carte', data })
+    } catch (_) { /* monde pas encore chargé, appli fermée... */ } finally { carteEnCours = false }
+  }
+  setInterval(envoyerCarte, 4000)
   // l'appli s'est fermée (même brutalement) : le bot quitte le monde au lieu de rester tout seul
   process.on('disconnect', () => {
     try { etat.bot?.quit('MineBuddy fermé') } catch (_) {}
@@ -139,6 +160,12 @@ if (DANS_APPLI) {
           suit: etat.connecte ? (etat.actions?.suitQui?.() || null) : null,
           reflechit: etat.connecte && !!etat.brain?.busy,
           jour: etat.connecte ? !!b.time?.isDay : null,
+          // pour la carte : direction du regard et joueurs que le bot voit
+          yaw: etat.connecte ? b.entity?.yaw ?? null : null,
+          joueurs: etat.connecte
+            ? Object.values(b.players).filter(j => j.entity && j.username !== b.username)
+              .map(j => ({ nom: j.username, x: Math.floor(j.entity.position.x), y: Math.floor(j.entity.position.y), z: Math.floor(j.entity.position.z) }))
+            : [],
           ...(etat.connecte ? poches(b) : {})
         }
       })
