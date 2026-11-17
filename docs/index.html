@@ -55,7 +55,7 @@
         <figure class="fenetre">
           <img src="pilotage.png" alt="L'écran Pilotage de MineBuddy : le bot est connecté, mine une galerie, avec son journal d'activité et son inventaire" width="1104" height="721">
         </figure>
-        <div class="bulles" aria-label="Exemple de discussion dans le chat du jeu">
+        <div class="bulles" data-chat aria-label="Exemple de discussion dans le chat du jeu">
           <p class="bulle toi"><b>Aiko74</b>tu peux aller chercher des diamants ? on se retrouve à la base dans 30 min</p>
           <p class="bulle bot"><b>Claude</b>Ok ! Je prends des torches et je descends. À tout à l'heure à la base !</p>
         </div>
@@ -247,17 +247,6 @@
     </div>
   </footer>
 
-  <script>
-    // Liens à remplir quand ils existent : un bouton dont le lien est vide n'est pas affiché
-    const LIENS = {
-      youtube: '', // ex. https://www.youtube.com/@tachaine
-      dons: '' // ex. https://ko-fi.com/tonpseudo
-    }
-    document.querySelectorAll('[data-lien]').forEach((a) => {
-      const url = LIENS[a.dataset.lien]
-      if (url) a.href = url
-      else a.hidden = true
-    })
-  </script>
+  <script src="site.js" defer></script>
 </body>
 </html>

@@ -56,7 +56,7 @@
         <figure class="fenetre">
           <img src="../pilotage.png" alt="MineBuddy's control screen: the bot is connected and mining, with its activity log and inventory" width="1104" height="721">
         </figure>
-        <div class="bulles" lang="fr" aria-label="Example chat in the game (in French)">
+        <div class="bulles" data-chat lang="fr" aria-label="Example chat in the game (in French)">
           <p class="bulle toi"><b>Aiko74</b>tu peux aller chercher des diamants ? on se retrouve à la base dans 30 min</p>
           <p class="bulle bot"><b>Claude</b>Ok ! Je prends des torches et je descends. À tout à l'heure à la base !</p>
         </div>
@@ -252,17 +252,6 @@
     </div>
   </footer>
 
-  <script>
-    // Links to fill in once they exist: a button whose link is empty is hidden (same as the French page)
-    const LIENS = {
-      youtube: '',
-      dons: ''
-    }
-    document.querySelectorAll('[data-lien]').forEach((a) => {
-      const url = LIENS[a.dataset.lien]
-      if (url) a.href = url
-      else a.hidden = true
-    })
-  </script>
+  <script src="../site.js" defer></script>
 </body>
 </html>
