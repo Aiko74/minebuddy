@@ -1,0 +1,13 @@
+# dépendances et fichiers fabriqués
+node_modules/
+dist/
+
+# secrets et données personnelles : JAMAIS sur GitHub
+.env
+memoire.json
+bot.log
+console.txt
+*.log
+
+# journal de bord perso de la nuit de tests
+PLAN-NUIT.md

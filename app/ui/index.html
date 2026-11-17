@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>MineBuddy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="side">
+      <div class="logo"><span class="logo-ic" data-ic="robot"></span><span>MineBuddy</span></div>
+      <nav>
+        <button class="nv on" data-page="pilotage"><span data-ic="play"></span>Pilotage</button>
+        <button class="nv" data-page="connexion"><span data-ic="plug"></span>Connexion</button>
+        <button class="nv" data-page="memoire"><span data-ic="pin"></span>Mémoire</button>
+        <button class="nv" data-page="personnalite"><span data-ic="smile"></span>Personnalité</button>
+      </nav>
+      <div class="side-pied">
+        <div id="pied-modele">Cerveau : —</div>
+        <div id="pied-depense">Aujourd'hui : 0,00 $</div>
+      </div>
+    </aside>
+
+    <main>
+      <!-- PILOTAGE -->
+      <section class="page on" id="page-pilotage">
+        <div class="bandeau" id="bandeau-cle" hidden>
+          <span>Pour démarrer, ajoute ta clé API Claude dans l'onglet Connexion.</span>
+          <button class="bt" data-aller="connexion">Ouvrir Connexion</button>
+        </div>
+        <div class="cd etat">
+          <div class="avatar" id="avatar">C</div>
+          <div class="etat-infos">
+            <div class="etat-ligne"><span class="nom" id="etat-nom">Claude</span><span class="badge" id="etat-badge">Arrêté</span></div>
+            <div class="muted" id="etat-ou">—</div>
+            <div class="barres">
+              <span>Vie</span><div class="bar"><div class="bar-in vie" id="bar-vie"></div></div><span id="txt-vie">—</span>
+              <span>Faim</span><div class="bar"><div class="bar-in faim" id="bar-faim"></div></div><span id="txt-faim">—</span>
+            </div>
+          </div>
+          <div class="etat-boutons">
+            <button class="bt prim" id="btn-demarrer">Démarrer</button>
+            <button class="bt" id="btn-arreter">Arrêter</button>
+          </div>
+        </div>
+        <div class="cd journal-cd">
+          <div class="cd-tete"><span>Activité en direct</span><span id="mission"></span>
+            <label class="petit"><input type="checkbox" id="chk-details"> Détails</label>
+          </div>
+          <div class="journal" id="journal"></div>
+        </div>
+        <form class="ecrire" id="form-dire">
+          <input type="text" id="txt-dire" placeholder="Écris-lui : va miner 30 min puis rentre à la base" autocomplete="off">
+          <button class="bt prim" aria-label="Envoyer"><span data-ic="send"></span></button>
+        </form>
+        <div class="erreur" id="err-dire"></div>
+      </section>
+
+      <!-- CONNEXION -->
+      <section class="page" id="page-connexion">
+        <h1>Connexion</h1>
+        <form id="form-connexion" class="grille">
+          <div class="cd">
+            <h2>Le bot et toi</h2>
+            <label>Nom du bot dans le jeu<input name="nomBot" maxlength="16" placeholder="Claude"></label>
+            <label>Ton pseudo Minecraft<input name="pseudo" maxlength="16" placeholder="Aiko74"><small>Le bot t'écoute toujours, toi. Les autres doivent dire son nom.</small></label>
+            <label class="ligne"><input type="checkbox" name="repondreATous"> Répondre à tous les joueurs</label>
+          </div>
+          <div class="cd">
+            <h2>Le monde</h2>
+            <label>Adresse<input name="hote" placeholder="localhost"><small>« localhost » si le monde est ouvert en LAN sur ce PC.</small></label>
+            <label>Port<input name="port" type="number" min="1" max="65535" placeholder="25565"><small>En LAN, le port s'affiche dans le chat quand tu ouvres le monde. Il change à chaque fois.</small></label>
+            <label>Version de Minecraft<input name="version" placeholder="vide = automatique"></label>
+            <label>Compte<select name="compte"><option value="offline">Hors ligne (LAN, sans compte)</option><option value="microsoft">Compte Microsoft</option></select></label>
+          </div>
+          <div class="cd">
+            <h2>Le cerveau</h2>
+            <label>Modèle<select name="modele">
+              <option value="claude-sonnet-5-5">Sonnet 5.5 — plus malin (conseillé)</option>
+              <option value="claude-haiku-5-5">Haiku 5.5 — rapide et pas cher</option>
+              <option value="claude-opus-5-5">Opus 5.5 — le plus puissant, le plus cher</option>
+            </select></label>
+            <label>Réflexion<select name="effort"><option value="low">Rapide</option><option value="medium">Normale</option><option value="high">Poussée</option></select></label>
+            <label>Budget par jour ($)<input name="budget" type="number" min="0" step="0.5"><small>Au-delà, il passe tout seul sur Haiku (beaucoup moins cher).</small></label>
+          </div>
+          <div class="cd">
+            <h2>Clé API Claude</h2>
+            <div class="muted" id="cle-etat">Aucune clé enregistrée.</div>
+            <label>Nouvelle clé<input type="password" id="cle" placeholder="sk-ant-..." autocomplete="off"><small>Gardée chiffrée sur ce PC seulement. Elle n'est jamais affichée.</small></label>
+            <div class="rang">
+              <button type="button" class="bt" id="btn-tester">Tester la clé</button>
+              <button type="button" class="bt lien" id="btn-console">Obtenir une clé</button>
+            </div>
+            <div class="muted" id="cle-test"></div>
+          </div>
+        </form>
+        <div class="pied-page">
+          <span class="muted" id="msg-connexion">Les changements comptent au prochain démarrage du bot.</span>
+          <button class="bt" id="btn-redemarrer" hidden>Redémarrer le bot</button>
+          <button class="bt prim" id="btn-enregistrer">Enregistrer</button>
+        </div>
+      </section>
+
+      <!-- MÉMOIRE -->
+      <section class="page" id="page-memoire">
+        <h1>Mémoire</h1>
+        <div class="grille">
+          <div class="cd">
+            <h2>Lieux retenus</h2>
+            <div id="lieux" class="liste"></div>
+            <form id="form-lieu" class="ajout-lieu">
+              <input name="nom" placeholder="base" maxlength="30">
+              <input name="x" type="number" placeholder="x">
+              <input name="y" type="number" placeholder="y">
+              <input name="z" type="number" placeholder="z">
+              <select name="dimension"><option value="overworld">Monde</option><option value="the_nether">Nether</option><option value="the_end">End</option></select>
+              <button class="bt" aria-label="Ajouter le lieu"><span data-ic="plus"></span></button>
+            </form>
+            <div class="erreur" id="err-lieu"></div>
+          </div>
+          <div class="cd">
+            <h2>Souvenirs</h2>
+            <div id="souvenirs" class="liste"></div>
+            <form id="form-souvenir" class="ecrire">
+              <input name="texte" placeholder="Aiko74 adore les chalets en bois" maxlength="300">
+              <button class="bt" aria-label="Ajouter le souvenir"><span data-ic="plus"></span></button>
+            </form>
+          </div>
+        </div>
+        <div class="pied-page">
+          <button class="bt lien" id="btn-dossier">Ouvrir le dossier des données</button>
+          <button class="bt danger" id="btn-effacer">Tout effacer</button>
+        </div>
+      </section>
+
+      <!-- PERSONNALITÉ -->
+      <section class="page" id="page-personnalite">
+        <h1>Personnalité</h1>
+        <div class="cd">
+          <h2>Modèles rapides</h2>
+          <div class="rang" id="presets">
+            <button class="bt" data-preset="pote">Pote rigolo</button>
+            <button class="bt" data-preset="pro">Coéquipier efficace</button>
+            <button class="bt" data-preset="explo">Explorateur curieux</button>
+            <button class="bt" data-preset="pirate">Pirate</button>
+          </div>
+        </div>
+        <form id="form-perso" class="cd">
+          <label>Son caractère<textarea name="caractere" rows="3" placeholder="Blagueur, un peu vantard, adore construire des chalets en bois"></textarea></label>
+          <label>Sa façon de parler<textarea name="style" rows="3" placeholder="Phrases courtes, tutoie, parle comme un pote, quelques blagues"></textarea></label>
+          <label>Tes règles<textarea name="regles" rows="4" placeholder="Ne casse jamais mes constructions. N'attaque jamais de joueur."></textarea><small>Il les respecte en priorité.</small></label>
+          <label class="ligne"><input type="checkbox" id="chk-autonome"> Mode autonome : quand il n'a rien à faire, il prend des initiatives tout seul</label>
+        </form>
+        <div class="pied-page">
+          <span class="muted" id="msg-perso">Les changements comptent au prochain démarrage du bot.</span>
+          <button class="bt prim" id="btn-perso">Enregistrer</button>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

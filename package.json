@@ -1,0 +1,72 @@
+{
+  "name": "minebuddy",
+  "productName": "MineBuddy",
+  "version": "1.0.0",
+  "description": "Ton pote Minecraft piloté par Claude : il comprend le français, joue avec toi et prend des initiatives.",
+  "author": "Aiko74",
+  "license": "MIT",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron .",
+    "bot": "node superviseur.js",
+    "bot-seul": "node index.js",
+    "test-api": "node test-api.js",
+    "icone": "node scripts/icone.js",
+    "dist": "electron-builder --win"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
+    "dotenv": "^16.4.5",
+    "mineflayer": "^4.23.0",
+    "mineflayer-collectblock": "^1.4.1",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
+    "vec3": "^0.1.10"
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.aiko74.minebuddy",
+    "productName": "MineBuddy",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "app/**/*",
+      "index.js",
+      "actions.js",
+      "brain.js",
+      "memoire.js",
+      "package.json",
+      "build/icon.png",
+      "!**/minecraft-data/data/bedrock/[0-9]*/**",
+      "!**/minecraft-data/data/bedrock/latest/**",
+      "!**/node_modules/typescript/**"
+    ],
+    "asar": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "MineBuddy",
+      "artifactName": "MineBuddy-Setup-${version}.exe"
+    }
+  }
+}
