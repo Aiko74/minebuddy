@@ -84,6 +84,11 @@ function createActions (bot, memoire) {
   // l'eau coûte plus cher : il nage mal (trajets « trop long ») et s'y fait tuer (noyés à trident, squelettes) :
   // il préfère donc les chemins sur la terre ferme quand il y en a un
   moves.liquidCost = 4
+  // pas de saut dans le vide : par défaut le pathfinder saute par-dessus les trous (parkour, souvent raté
+  // en montagne) et se jette de n'importe quelle hauteur s'il voit de l'eau en bas. On interdit les deux.
+  // (il garde les descentes de 3 blocs max, qui ne font pas mal : réglage maxDropDown par défaut)
+  moves.allowParkour = false
+  moves.infiniteLiquidDropdownDistance = false
   bot.pathfinder.setMovements(moves)
   // le combat et la récolte utilisent les mêmes règles (sinon ils remettent les leurs)
   bot.pvp.movements = moves
@@ -893,11 +898,14 @@ function createActions (bot, memoire) {
           // Une recette peut avoir plusieurs variantes (cobblestone ou deepslate...) :
           // on prend celle à laquelle il manque le moins de choses et on dit exactement quoi.
           const have = (id) => items().filter(i => i.type === id).reduce((a, i) => a + i.count, 0)
+          // planches qu'il peut découper dans ses bûches (ex. acacia_log → acacia_planks) : variante à préférer
+          const aLesBuches = (nom) => /_planks$/.test(nom) &&
+            ['_log', '_stem'].some(s => have(reg.itemsByName[nom.replace(/_planks$/, s)]?.id) > 0)
           let best = null
           for (const r of all) {
             const need = r.delta.filter(d => d.count < 0)
             const missing = need.map(d => ({ name: reg.items[d.id]?.name, n: -d.count - have(d.id) })).filter(m => m.n > 0)
-            const score = missing.reduce((a, m) => a + m.n, 0)
+            const score = missing.reduce((a, m) => a + m.n - (aLesBuches(m.name) ? 0.5 : 0), 0)
             if (!best || score < best.score) best = { r, need, missing, score }
           }
           const recette = best.need.map(d => `${-d.count} ${reg.items[d.id]?.name}`).join(', ')
@@ -908,7 +916,9 @@ function createActions (bot, memoire) {
               : `Je n'arrive pas à fabriquer ${objet} (recette : ${recette}).`
           }
           const manque = best.missing.map(m => `${m.n} ${m.name}`).join(', ')
-          return `Il me manque : ${manque} (recette : ${recette}).${noTable ? ' Il faut aussi un établi posé à proximité.' : ''}`
+          const decoupe = best.missing.filter(m => aLesBuches(m.name)).map(m => m.name)
+          return `Il me manque : ${manque} (recette : ${recette}).${noTable ? ' Il faut aussi un établi posé à proximité.' : ''}` +
+            (decoupe.length ? ` Tu as les bûches : fabrique d'abord ${decoupe.join(', ')}.` : '')
         }
       }
       const perCraft = recipe.result?.count || 1
