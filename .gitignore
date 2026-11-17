@@ -14,3 +14,6 @@ PLAN-NUIT.md
 
 # fichier de Windows
 desktop.ini
+
+# réglages locaux de Claude Code
+.claude/

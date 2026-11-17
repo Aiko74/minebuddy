@@ -430,9 +430,20 @@ function creerFenetre () {
     fenetre.webContents.once('did-finish-load', async () => {
       const dossier = process.env.MB_CAPTURE
       fs.mkdirSync(dossier, { recursive: true })
+      // devant les autres fenêtres et redessinée avant chaque photo (sinon Windows garde une image figée)
+      fenetre.setAlwaysOnTop(true)
+      let precedente = null
       const photo = async (nom) => {
-        const img = await fenetre.webContents.capturePage()
-        fs.writeFileSync(path.join(dossier, `${nom}.png`), img.toPNG())
+        let png = null
+        // image identique à la précédente = écran pas encore redessiné : on réessaie
+        for (let essai = 0; essai < 5; essai++) {
+          fenetre.webContents.invalidate()
+          await new Promise(r => setTimeout(r, 400 + essai * 500))
+          png = (await fenetre.webContents.capturePage()).toPNG()
+          if (!precedente || !png.equals(precedente)) break
+        }
+        precedente = png
+        fs.writeFileSync(path.join(dossier, `${nom}.png`), png)
       }
       const js = (code) => fenetre.webContents.executeJavaScript(code)
       await new Promise(r => setTimeout(r, 1500))
@@ -455,6 +466,16 @@ function creerFenetre () {
           equipement: { tete: 'iron_helmet', torse: 'iron_chestplate', jambes: null, pieds: 'iron_boots', main: 'iron_pickaxe' },
           inventaire: [{ nom: 'cobblestone', nombre: 143 }, { nom: 'oak_log', nombre: 24 }, { nom: 'torch', nombre: 31 }, { nom: 'cooked_beef', nombre: 12 }, { nom: 'iron_ingot', nombre: 9 }, { nom: 'diamond', nombre: 3 }, { nom: 'coal', nombre: 17 }, { nom: 'stone_pickaxe', nombre: 1 }, { nom: 'red_bed', nombre: 1 }, { nom: 'water_bucket', nombre: 1 }, { nom: 'raw_gold', nombre: 4 }, { nom: 'redstone', nombre: 22 }]
         })
+        // quelques lignes de journal typiques d'une partie
+        for (const [t, texte] of [
+          ['20:41', '💬 <Aiko74> tu peux aller chercher des diamants ? on se retrouve à la base dans 30 min'],
+          ['20:41', '  🤖 Ok ! Je prends des torches et je descends. À tout à l\'heure à la base !'],
+          ['20:41', '  ⚙ commencer_mission {"objectif":"trouver des diamants","minutes":30,"rendez_vous":"base"} → Mission lancée pour 30 min.'],
+          ['20:43', '  ⚙ descendre {"y":-58} → Arrivé en y = -58 (61 marches), torches posées.'],
+          ['20:47', '  ⚙ miner_galerie {"direction":"est","longueur":40} → Galerie de 40 blocs : 9 raw_iron, 17 coal, 3 diamond.'],
+          ['20:47', '  🤖 3 diamants ! Je continue un peu par là.'],
+          ['20:48', '  ⚙ miner_galerie {"longueur":40} → en cours…']
+        ]) fenetre.webContents.send('bot:log', { t, texte })
         await new Promise(r => setTimeout(r, 800))
         await photo('pilotage-demo')
         // MB_DEMO_CARTE=fichier.json : une carte toute faite (calculée hors jeu) pour vérifier l'onglet Carte

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MineBuddy — ton pote Minecraft piloté par l'IA</title>
+  <meta name="description" content="MineBuddy : un bot Minecraft qui joue avec toi. Tu lui parles normalement dans le chat, en français : il comprend, survit, construit, mine et prend des initiatives. Gratuit et open source.">
+  <meta property="og:title" content="MineBuddy — ton pote Minecraft piloté par l'IA">
+  <meta property="og:description" content="Tu lui parles normalement dans le chat, en français. Il comprend, joue avec toi et prend des initiatives tout seul. Gratuit et open source.">
+  <meta property="og:image" content="https://aiko74.github.io/minebuddy/pilotage.png">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#17181b">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="entete">
+    <div class="largeur entete-in">
+      <a class="marque" href="#haut" aria-label="MineBuddy, retour en haut"><img src="icon.png" alt="" width="30" height="30">MineBuddy</a>
+      <nav class="menu" aria-label="Sections">
+        <a href="#fonctions">Ce qu'il sait faire</a>
+        <a href="#appli">L'appli</a>
+        <a href="#demarrer">Démarrer</a>
+        <a href="#prix">Prix</a>
+        <a href="#faq">Questions</a>
+      </nav>
+      <a class="bt prim petit" href="https://github.com/Aiko74/minebuddy/releases/latest">Télécharger</a>
+    </div>
+  </header>
+
+  <main id="haut">
+    <!-- ACCUEIL -->
+    <section class="hero largeur">
+      <div class="hero-texte">
+        <p class="sur">Gratuit · open source · en français</p>
+        <h1>Ton pote Minecraft, piloté par l'IA</h1>
+        <p class="chapo">Tu lui parles normalement dans le chat du jeu. Il comprend, joue avec toi, survit, construit, mine… et prend des initiatives tout seul. Pas une seule commande à apprendre.</p>
+        <div class="actions">
+          <a class="bt prim" href="https://github.com/Aiko74/minebuddy/releases/latest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Télécharger pour Windows</a>
+          <a class="bt" href="https://github.com/Aiko74/minebuddy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.5-4-2-6-2.5M15 21v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C6.8 2.8 5.8 3.1 5.8 3.1a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>Voir le code</a>
+        </div>
+        <p class="note">Windows 10 / 11 · Minecraft Java Edition (testé en 26.1.2) · une clé API Claude</p>
+      </div>
+      <div class="hero-visuel">
+        <figure class="fenetre">
+          <img src="pilotage.png" alt="L'écran Pilotage de MineBuddy : le bot est connecté, mine une galerie, avec son journal d'activité et son inventaire" width="1104" height="721">
+        </figure>
+        <div class="bulles" aria-label="Exemple de discussion dans le chat du jeu">
+          <p class="bulle toi"><b>Aiko74</b>tu peux aller chercher des diamants ? on se retrouve à la base dans 30 min</p>
+          <p class="bulle bot"><b>Claude</b>Ok ! Je prends des torches et je descends. À tout à l'heure à la base !</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CE QU'IL SAIT FAIRE -->
+    <section class="bloc largeur" id="fonctions">
+      <h2>Ce qu'il sait faire</h2>
+      <p class="intro">Un vrai coéquipier : il comprend ce que tu veux, même tapé vite avec des fautes, et découpe tout seul le travail en étapes.</p>
+      <div class="grille-3">
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>
+          <h3>Il joue avec toi</h3>
+          <p>Il te suit, te rejoint, te donne des objets et discute comme un pote : messages courts, en français. Tu lui choisis un caractère (rigolo, sérieux, pirate…).</p>
+        </article>
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+          <h3>Il survit</h3>
+          <p>Il mange, chasse, cuit sa viande, met son armure et se défend. La nuit, il s'abrite ou dort avec toi pour que la nuit passe. Coincé dans l'eau, il nage jusqu'à la berge.</p>
+        </article>
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6-3 3-6-6zM11 7L3 15v4h4l8-8"/></svg>
+          <h3>Il récolte et fabrique</h3>
+          <p>Bois, pierre, minerais, puis n'importe quel objet : outils, armes, armures, four, lit… Il trouve la recette et ce qui lui manque.</p>
+        </article>
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg>
+          <h3>Il construit</h3>
+          <p>Une cabane, un chalet complet sur un terrain qu'il aplanit lui-même, un enclos pour une ferme d'animaux qu'il attire et fait se reproduire.</p>
+        </article>
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <h3>Il part en mission</h3>
+          <p>« Va miner 30 min puis on se retrouve à la base » : il y va seul, mine jusqu'aux diamants en évitant la lave, et revient au rendez-vous.</p>
+        </article>
+        <article class="carte">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l5-5M4 14l6 6M14 4l6 6-8 8-6-6z"/></svg>
+          <h3>Jusqu'à l'Ender Dragon</h3>
+          <p>Portail du Nether, troc avec les piglins, yeux de l'Ender, cristaux à l'arc… Pendant nos tests, il a battu le dragon.</p>
+        </article>
+      </div>
+      <p class="promesse"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span>Il ne casse <b>jamais</b> tes constructions et n'attaque <b>jamais</b> un joueur.</span></p>
+    </section>
+
+    <!-- L'APPLI -->
+    <section class="bloc largeur" id="appli">
+      <h2>Une appli simple pour tout régler</h2>
+      <p class="intro">Pas de fichier à modifier : tout se règle dans l'appli, et un guide en 3 étapes t'accompagne au premier lancement.</p>
+      <div class="galerie">
+        <figure>
+          <a href="pilotage.png"><img src="pilotage.png" alt="Pilotage : ce que fait le bot en direct, sa vie, sa faim, son équipement et son inventaire" width="1104" height="721" loading="lazy"></a>
+          <figcaption><b>Pilotage</b> Ce qu'il fait en ce moment, sa mission, sa vie, son inventaire. Tu peux lui écrire d'ici.</figcaption>
+        </figure>
+        <figure>
+          <a href="carte.png"><img src="carte.png" alt="Carte : le terrain vu de dessus autour du bot, avec les joueurs et les lieux retenus" width="1104" height="721" loading="lazy"></a>
+          <figcaption><b>Carte</b> Le terrain autour de lui en direct, toi, et ses lieux retenus. « Y aller » en un clic.</figcaption>
+        </figure>
+        <figure>
+          <a href="memoire.png"><img src="memoire.png" alt="Mémoire : les lieux retenus avec leurs coordonnées et les souvenirs du bot" width="1104" height="721" loading="lazy"></a>
+          <figcaption><b>Mémoire</b> Ses lieux (base, mine, portail…) et ses souvenirs : tu les vois, les modifies, les effaces.</figcaption>
+        </figure>
+        <figure>
+          <a href="personnalite.png"><img src="personnalite.png" alt="Personnalité : caractère, façon de parler, règles et mode autonome" width="1104" height="721" loading="lazy"></a>
+          <figcaption><b>Personnalité</b> Son caractère, sa façon de parler et tes règles. Des modèles tout prêts, dont un pirate.</figcaption>
+        </figure>
+      </div>
+      <ul class="pastilles">
+        <li>Ton monde LAN trouvé tout seul</li>
+        <li>Il continue de jouer fenêtre fermée</li>
+        <li>Mises à jour automatiques</li>
+        <li>Clé API chiffrée sur ton PC</li>
+        <li>Bouton « Signaler un problème »</li>
+      </ul>
+    </section>
+
+    <!-- DÉMARRER -->
+    <section class="bloc largeur" id="demarrer">
+      <h2>Prêt en 3 étapes</h2>
+      <ol class="etapes">
+        <li>
+          <span class="num">1</span>
+          <h3>Installe MineBuddy</h3>
+          <p>Télécharge l'installateur et lance-le. Windows peut afficher « Windows a protégé votre ordinateur » (l'appli n'est pas signée) : <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.</p>
+        </li>
+        <li>
+          <span class="num">2</span>
+          <h3>Colle ta clé API Claude</h3>
+          <p>Crée-la sur <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a> et colle-la dans le guide. Elle reste chiffrée sur ton PC.</p>
+        </li>
+        <li>
+          <span class="num">3</span>
+          <h3>Ouvre ton monde en LAN</h3>
+          <p>Dans Minecraft : <b>Échap</b>, <b>Ouvrir au réseau local</b>, <b>Lancer le monde en LAN</b>. MineBuddy le trouve tout seul : clique sur Démarrer, ton pote arrive et te dit salut.</p>
+        </li>
+      </ol>
+      <figure class="fenetre guide-img">
+        <img src="guide.png" alt="Le guide des premiers pas : étape 3, le monde LAN est trouvé tout seul" width="1104" height="721" loading="lazy">
+      </figure>
+    </section>
+
+    <!-- PRIX -->
+    <section class="bloc largeur" id="prix">
+      <h2>Combien ça coûte ?</h2>
+      <div class="grille-2">
+        <article class="carte prix">
+          <p class="etiquette">L'appli</p>
+          <p class="montant">Gratuite</p>
+          <p>Open source (licence MIT). Pas d'abonnement, pas de pub.</p>
+        </article>
+        <article class="carte prix">
+          <p class="etiquette">Le cerveau (Claude)</p>
+          <p class="montant">Payé à l'usage</p>
+          <p>Avec ta propre clé API, chez Anthropic. Ça dépend de combien il joue : pendant nos tests, une nuit entière de jeu autonome jusqu'au dragon a coûté environ <b>2,30 $</b>.</p>
+          <ul class="liste-ok">
+            <li><b>Budget par jour</b> (3 $ par défaut) : au-delà, il passe tout seul sur un modèle bien moins cher.</li>
+            <li><b>Économie</b> : les actions de routine sont confiées au petit modèle, le grand garde les discussions et les coups durs.</li>
+          </ul>
+        </article>
+      </div>
+      <p class="note centre">Il faut être majeur pour créer un compte Anthropic. Plus jeune ? Demande à un adulte de s'en occuper avec toi.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="bloc largeur etroit" id="faq">
+      <h2>Questions fréquentes</h2>
+      <details>
+        <summary>Il faut un deuxième compte Minecraft ?</summary>
+        <p>Non. En LAN, le bot rejoint ton monde en mode hors ligne : pas besoin d'acheter un autre compte.</p>
+      </details>
+      <details>
+        <summary>Ça marche avec quelle version de Minecraft ?</summary>
+        <p>Minecraft Java Edition. Il a été testé en 26.1.2. Bedrock (console, mobile, Windows « Bedrock ») n'est pas compatible.</p>
+      </details>
+      <details>
+        <summary>Il peut casser mes constructions ?</summary>
+        <p>Non : il refuse de casser les blocs de construction (planches, briques, verre…) et n'attaque jamais un joueur, même si on insiste. Ces règles sont dans son code, pas seulement dans ses consignes.</p>
+      </details>
+      <details>
+        <summary>Il peut mourir ?</summary>
+        <p>Oui, comme un vrai joueur. Il retourne chercher son stuff tout seul. L'eau et les nuits sans armure restent ses points faibles : commence dans un monde de test pour le découvrir.</p>
+      </details>
+      <details>
+        <summary>Ça marche sur un serveur ?</summary>
+        <p>En LAN, c'est le plus simple. Sur un serveur, il faut que le serveur accepte les joueurs hors ligne, ou un compte Microsoft pour le bot (option « Compte Microsoft » dans l'appli).</p>
+      </details>
+      <details>
+        <summary>Et sur Mac ou Linux ?</summary>
+        <p>Pas encore d'installateur : seulement Windows pour l'instant. Les développeurs peuvent le lancer depuis le code (Node.js).</p>
+      </details>
+      <details>
+        <summary>J'ai un problème, je fais comment ?</summary>
+        <p>Dans l'appli, clique sur <b>Signaler un problème</b> en bas à gauche : le rapport (sans ta clé) est copié, il ne reste qu'à le coller sur la page GitHub.</p>
+      </details>
+    </section>
+
+    <!-- SOUTENIR -->
+    <section class="bloc largeur etroit soutenir">
+      <h2>Tu aimes MineBuddy ?</h2>
+      <p class="intro">Le projet est gratuit. Pour le soutenir, le plus simple : une étoile sur GitHub, et en parler à tes potes.</p>
+      <div class="actions centre">
+        <a class="bt" href="https://github.com/Aiko74/minebuddy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>Une étoile sur GitHub</a>
+        <a class="bt" data-lien="youtube" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></svg>La chaîne YouTube</a>
+        <a class="bt coeur" data-lien="dons" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Faire un don</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <div class="largeur pied-in">
+      <p><img src="icon.png" alt="" width="20" height="20"> MineBuddy · par Aiko74 · licence MIT · <a href="https://github.com/Aiko74/minebuddy">GitHub</a></p>
+      <p class="legal">MineBuddy n'est pas affilié à Mojang, Microsoft ou Anthropic. Minecraft est une marque de Mojang / Microsoft. Claude est une marque d'Anthropic.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Liens à remplir quand ils existent : un bouton dont le lien est vide n'est pas affiché
+    const LIENS = {
+      youtube: '', // ex. https://www.youtube.com/@tachaine
+      dons: '' // ex. https://ko-fi.com/tonpseudo
+    }
+    document.querySelectorAll('[data-lien]').forEach((a) => {
+      const url = LIENS[a.dataset.lien]
+      if (url) a.href = url
+      else a.hidden = true
+    })
+  </script>
+</body>
+</html>
