@@ -78,6 +78,24 @@ h3 { margin: 0 0 6px; font-size: 17px; }
 .carte p { margin: 0; color: var(--muet); font-size: 15px; }
 .promesse { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 26px auto 0; padding: 12px 18px; width: fit-content; max-width: 100%; border-radius: 999px; background: var(--accent-fond); color: var(--accent-texte); font-size: 15px; text-align: center; }
 
+/* ce que tu peux lui dire */
+.phrases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.phrase { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.phrase blockquote { margin: 0; align-self: flex-start; max-width: 100%; padding: 10px 14px; border-radius: 12px 12px 12px 4px; background: #242a33; border: 1px solid #333b47; color: var(--bleu); font-size: 15px; font-weight: 600; }
+.phrase blockquote::before { content: "« "; color: #6f8fb5; }
+.phrase blockquote::after { content: " »"; color: #6f8fb5; }
+.phrase figcaption { color: var(--muet); font-size: 14px; padding-left: 4px; }
+:lang(en) .phrase blockquote::before { content: "\201C"; }
+:lang(en) .phrase blockquote::after { content: "\201D"; }
+
+/* encadré d'information (page anglaise : l'appli parle français) */
+.avis { display: flex; gap: 10px; align-items: flex-start; margin: -8px 0 24px; padding: 10px 14px; border-radius: 10px; background: #2a2416; border: 1px solid #4a3d1c; color: #f1d79a; font-size: 14px; max-width: 34em; }
+.avis svg { margin-top: 1px; }
+
+/* changement de langue */
+.langue { color: var(--muet); text-decoration: none; font-size: 13px; font-weight: 700; letter-spacing: .04em; padding: 6px 9px; border: 1px solid var(--bord); border-radius: 8px; }
+.langue:hover { color: var(--texte); border-color: #3a3d44; }
+
 /* galerie */
 .galerie { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
 .galerie figure { margin: 0; }
@@ -123,13 +141,15 @@ details p { margin: 0 0 18px; color: var(--muet); }
 @media (max-width: 960px) {
   .hero { grid-template-columns: 1fr; gap: 64px; padding-top: 48px; }
   .grille-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phrases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .menu { display: none; }
+  .langue { margin-left: auto; }
   .entete-in { justify-content: space-between; }
   .bulles { left: 12px; }
 }
 @media (max-width: 640px) {
   .largeur { width: calc(100% - 32px); }
-  .grille-3, .grille-2, .galerie, .etapes { grid-template-columns: 1fr; }
+  .grille-3, .grille-2, .galerie, .etapes, .phrases { grid-template-columns: 1fr; }
   .hero { padding-top: 36px; gap: 48px; }
   .chapo { font-size: 17px; }
   .actions .bt { flex: 1 1 100%; justify-content: center; }
